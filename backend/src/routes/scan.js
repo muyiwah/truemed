@@ -6,6 +6,7 @@ import { interpretAnswer, explain } from '../agents/voice/index.js';
 import { transcribe } from '../services/voice.js';
 import { toPcm24k } from '../services/media.js';
 import { Shop } from '../db/models/index.js';
+import { SAMPLES, renderSample } from '../demo/samples.js';
 import { imagesUpload, videoUpload, audioUpload, requireVerified, progress, asyncH } from './middleware.js';
 import { log } from '../lib/log.js';
 
@@ -48,6 +49,35 @@ function runScan(gate) {
 
 r.post('/scan/home', imagesUpload, runScan('home'));
 r.post('/scan/receiving', requireVerified, imagesUpload, runScan('receiving'));
+
+// --- Judge sample packs ---
+const sampleImages = new Map();
+const sampleImage = async (s) => {
+  if (!sampleImages.has(s.id)) sampleImages.set(s.id, await renderSample(s));
+  return sampleImages.get(s.id);
+};
+r.get('/samples', (_req, res) => res.json(SAMPLES.map(({ id, title, subtitle, tone, suggest }) => ({ id, title, subtitle, tone, suggest, image: `/samples/${id}.jpg` }))));
+r.get('/samples/:id.jpg', asyncH(async (req, res) => {
+  const s = SAMPLES.find((x) => x.id === req.params.id);
+  if (!s) return res.status(404).end();
+  res.type('jpeg').set('Cache-Control', 'public, max-age=86400').send(await sampleImage(s));
+}));
+r.post('/samples/:id/run', asyncH(async (req, res) => {
+  const p = progress(req, res);
+  const s = SAMPLES.find((x) => x.id === req.params.id);
+  if (!s) return p.fail(404, 'Unknown sample');
+  const language = LANGS.includes(req.body?.language) ? req.body.language : 'en';
+  try {
+    const out = await startScan({
+      gate: 'home', files: [{ buffer: await sampleImage(s) }], deviceId: req.deviceId, role: req.role, language, sampleId: s.id,
+      onStep: (step, data) => p.step({ step, text: STEP_TEXT[step] ?? step, ...(step === 'read' ? { brand: data?.fields?.brandName ?? null } : {}) }),
+    });
+    p.done(out);
+  } catch (err) {
+    log.error({ err: err.message }, 'sample failed');
+    p.fail(err.status ?? 500, friendly(err));
+  }
+}));
 
 r.post('/scan/:id/confirm', asyncH(async (req, res) => {
   const values = z.record(z.string(), z.string().max(60)).catch({}).parse(req.body?.values ?? {});

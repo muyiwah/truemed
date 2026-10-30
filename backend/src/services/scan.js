@@ -52,18 +52,33 @@ async function rerun(session, extra = {}) {
   const { fields, printed } = resolveFields({ extracted: session.extracted ?? {}, barcode: session.barcode, userValues: session.userValues ?? {} });
   const ctx = await buildContext({
     gate: session.gate, fields, printed, confirmed: session.confirmed, barcode: session.barcode, visual: session.visual,
-    answer: session.answer, deviceId: session.deviceId, city: session.city, receivingShopId: session.shopId, ...extra,
+    answer: session.answer, deviceId: session.deviceId, city: session.city, receivingShopId: session.shopId, sample: Boolean(session.sampleId), ...extra,
   });
   return { ...evaluate(ctx), ctx, fields };
 }
 
+// Judge samples: the AI read of each sample is cached after its first run, so
+// later runs are instant and identical. The rules and ledger still run live.
+const sampleCache = new Map();
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
 /** Start: photos in, inspection done. */
-export async function startScan({ gate, files, deviceId, role, shopId, source, city, language = 'en', onStep }) {
-  const session = await ScanSession.create({ gate, deviceId, role, shopId, source, city, language });
-  const insp = await inspect(files.map((f) => f.buffer), { lookupProduct: lookupForInspector, onStep });
+export async function startScan({ gate, files, deviceId, role, shopId, source, city, language = 'en', onStep = () => {}, sampleId }) {
+  const session = await ScanSession.create({ gate, deviceId, role, shopId, source, city, language, sampleId });
+  let insp;
+  if (sampleId && sampleCache.has(sampleId)) {
+    insp = sampleCache.get(sampleId);
+    for (const step of ['quality', 'reading', 'read', 'regions', 'tamper']) {
+      onStep(step, step === 'read' ? { fields: insp.extracted } : undefined);
+      await pause(450);
+    }
+  } else {
+    insp = await inspect(files.map((f) => f.buffer), { lookupProduct: lookupForInspector, onStep });
+    if (sampleId && insp.aiAvailable) sampleCache.set(sampleId, insp);
+  }
 
   // Store photos in the background; never block the scan on it.
-  const stored = Promise.all(insp.images.map((img, i) => store(img.buffer, { folder: `scans/${gate}`, name: `${session._id}-${i}.jpg`, kind: 'photo' })))
+  const stored = sampleId ? Promise.resolve() : Promise.all(insp.images.map((img, i) => store(img.buffer, { folder: `scans/${gate}`, name: `${session._id}-${i}.jpg`, kind: 'photo' })))
     .then((m) => ScanSession.updateOne({ _id: session._id }, { $set: { images: m.filter(Boolean) } }))
     .catch((err) => log.warn({ err: err.message }, 'photo store failed'));
 
@@ -131,30 +146,31 @@ async function finalize(session, { checks, verdict, ctx, fields }) {
   const verified = isVerified(session.role);
   const serial = fields.serial?.value ?? null;
   const batch = fields.batch?.value ?? null;
+  const live = !session.sampleId; // samples never touch the ledger
   let decision = null;
 
   if (session.gate === 'receiving') {
     decision = verdict.code === 'high_risk' ? 'rejected' : verdict.code === 'caution' || verdict.code === 'cant_verify' ? 'review' : 'accepted';
-    if (decision === 'accepted') {
+    if (decision === 'accepted' && live) {
       await logReceived({ serial, gtin: fields.gtin?.value, batch, expiry: fields.expiry?.value, regNo: fields.regNo?.value, productId: ctx.product?._id, shopId: session.shopId, source: session.source ?? {} });
     }
     const clone = checks.find((c) => c.id === 'SERIAL_CLONE' && c.status === 'fail');
-    if (clone) {
+    if (clone && live) {
       const shop = await Shop.findById(session.shopId).lean();
       await notifyClone({ serial, receivingShop: shop, otherShopId: ctx.pack?.shopId });
     }
-  } else if (session.gate === 'home' && verdict.code !== 'high_risk') {
+  } else if (session.gate === 'home' && verdict.code !== 'high_risk' && live) {
     await claimPack({ serial, deviceId: session.deviceId });
   }
 
   const shownChecks = verified ? checks : publicView(checks);
-  await ScanEvent.create({
+  if (live) await ScanEvent.create({
     type: session.gate, deviceId: session.deviceId, shopId: session.gate === 'home' ? session.answer?.shopId : session.shopId,
     serial, batch: batch ? String(batch).toUpperCase() : null, extracted: session.extracted, barcode: session.barcode,
     checks, verdict, answerShop: session.answer ?? null, city: session.city, images: session.images,
   });
 
-  if (verdict.code === 'high_risk' || verdict.code === 'caution') {
+  if (live && (verdict.code === 'high_risk' || verdict.code === 'caution')) {
     await Device.updateOne({ deviceId: session.deviceId }, { $inc: { failingScans: 1 } }, { upsert: true });
   }
 
@@ -167,6 +183,7 @@ async function finalize(session, { checks, verdict, ctx, fields }) {
     decision,
     canInvestigate: verdict.code === 'high_risk' || verdict.code === 'caution',
     gatedDetail: !verified,
+    sample: session.sampleId ?? null,
   };
   session.result = result;
   session.finalizedAt = new Date();

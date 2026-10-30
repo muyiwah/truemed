@@ -50,7 +50,7 @@ export async function buildContext(s) {
   }
 
   let priorVerifications = [];
-  if (serial && s.gate === 'home') {
+  if (serial && s.gate === 'home' && !s.sample) {
     const prior = await ScanEvent.find({ type: 'home', serial, 'verdict.code': { $ne: 'needs_confirmation' } }).select('deviceId city').lean();
     priorVerifications = prior.map((p) => ({ deviceId: p.deviceId, city: p.city }));
   }
@@ -72,7 +72,8 @@ export async function buildContext(s) {
     product,
     regLookup,
     alerts,
-    pack,
+    // Samples see the pack as freshly stocked, whatever real scans did to it.
+    pack: s.sample && pack ? { ...pack, status: 'in_stock' } : pack,
     packShop,
     issuer,
     answer: s.answer ?? null,

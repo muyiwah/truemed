@@ -9,3 +9,4 @@ backend/spikes/out/
 backend/eval/results.json
 *.log
 .vercel
+backend/spikes/*.jpg
