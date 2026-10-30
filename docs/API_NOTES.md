@@ -31,13 +31,20 @@ What the official docs at dev.meta.ai say, read on **Oct 30, 2026**, plus what l
 - No language parameter documented. 25 validated languages incl. English; not Yoruba/Hausa/Pidgin. $0.18/hour. 256 concurrent streams.
 - We convert browser webm/opus → 24 kHz mono s16le with ffmpeg.
 
-## Spike results
+## Spike results (live, Oct 30 — `backend/spikes/phase0.js`, `effort.js`, `samPhrases.js`, `agentsLive.js`)
 | Test | Result |
 |---|---|
-| Muse Spark image → schema JSON | pending key |
-| SAM phrase "barcode" on pack photo | pending key |
-| SAM box prompt on date region | pending key |
-| SAM video "box" tracking | pending key |
-| Voice: English sentence | pending key |
-| Voice: Pidgin sentence | pending key |
-| zxing decodes bwip-js GS1 DataMatrix | see backend tests |
+| Muse Spark image → schema JSON | ✔ All fields correct on the tampered DemoQuin sample (incl. sticker dates), confidences 0.95–0.99, `dateRegionBox` accurate. **12.4 s with default reasoning → 4–5 s with `reasoning: { effort: 'low' | 'minimal' }`**, same fields, half the cost (~$0.006). |
+| `reasoning.effort` | Responses API: `reasoning: { effort }`; values `minimal`…`max`; `none` → 400 on Muse Spark (docs: /docs/reasoning). We use `low` for reading/tamper/artwork/agents, `minimal` for explanations and shop matching. |
+| SAM phrase "barcode" on a DataMatrix | ✘ 0 matches. **"qr code" finds it (c=0.91).** "barcode" kept for linear EAN codes. Also 0 for "box", "package", "carton", "medicine box", "2d code" on the flat mock; **"card" finds the pack (0.89), "label" (0.62).** |
+| SAM box record shape | **Box records carry `left/top/right/bottom` directly; only mask records have `bounds`.** Mask rasters can be smaller than their box (1024×660 for a 1139×734 box) → scale the SVG path to the bounds. |
+| SAM box prompt on date region | ✔ 1 object + mask, 1.3–3.6 s. |
+| SAM video (H.264 MP4 data URL, 60 frames) | ✔ phrase "card": 3 objects tracked through 145 records, $0.012. Carton flow tries "box" → "card" → "package". |
+| Voice: English (macOS TTS) | ✔ "I boarded from Ikeja Care Pharmacy, near the roundabout.." (~5 s at 2× pacing). |
+| Voice: Pidgin (macOS TTS) | ~ "I buy them for the chemist way day Ojo Junction, Namama busy day" — rough as expected; Muse Spark matching handles it. Retest with a real Nigerian voice. |
+| Stored responses (`previous_response_id`) | ✘ Intermittent 400 "referenced response not found or expired". **Investigator resends the full history each turn instead.** |
+| Sentinel parse (pasted Dostinex text) | ✔ alert 07/2026, 3 batches, expiries null (not stated), 5 s. |
+| Investigator end to end | ✔ 6 tool calls, case file + draft report, ~22 s, streamed live. |
+| Carton end to end | ✔ 3 packs: clone rejected, never-issued rejected, expired (barcode) rejected, ~18 s. |
+| Full home scan, live | ✔ ~12 s photo → result incl. shop answer; explanation streams in ~2 s later. |
+| zxing decodes bwip-js GS1 DataMatrix | ✔ backend tests |

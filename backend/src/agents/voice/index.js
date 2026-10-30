@@ -38,6 +38,7 @@ export async function interpretAnswer(text, shops) {
     schema: answerSchema,
     zod: answerZod,
     timeoutMs: 20_000,
+    effort: 'minimal',
   });
   // Never trust an id the model invented.
   if (data.shopId && !shops.some((s) => String(s._id) === data.shopId)) data.shopId = null;
@@ -82,7 +83,7 @@ export async function explain(evidence, lang = 'en') {
     ...evidence.checks.filter((c) => c.status === 'fail').map((c) => `- ${c.reason}`),
     `Checks passed: ${evidence.checks.filter((c) => c.status === 'pass').length}`,
   ].filter(Boolean).join('\n');
-  const { text } = await sparkText({ label: `explain-${lang}`, instructions: EXPLAIN_INSTRUCTIONS(lang), content: [textPart(facts)], timeoutMs: 20_000 });
+  const { text } = await sparkText({ label: `explain-${lang}`, instructions: EXPLAIN_INSTRUCTIONS(lang), content: [textPart(facts)], timeoutMs: 20_000, effort: 'minimal' });
   return { text: text.trim(), disclaimer: DISCLAIMERS[lang] ?? DISCLAIMERS.en, lang };
 }
 

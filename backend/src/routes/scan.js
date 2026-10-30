@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { startScan, confirmValues, setAnswer, acceptAfterReview, getSession } from '../services/scan.js';
+import { startScan, confirmValues, setAnswer, acceptAfterReview, getSession, explainOnce } from '../services/scan.js';
 import { receiveCarton } from '../services/carton.js';
-import { interpretAnswer, explain } from '../agents/voice/index.js';
+import { interpretAnswer } from '../agents/voice/index.js';
 import { transcribe } from '../services/voice.js';
 import { toPcm24k } from '../services/media.js';
 import { Shop } from '../db/models/index.js';
@@ -155,7 +155,9 @@ r.post('/explain', asyncH(async (req, res) => {
   const { sessionId, lang } = z.object({ sessionId: z.string(), lang: z.enum(LANGS) }).parse(req.body);
   const s = await getSession(sessionId);
   if (!s?.result) return res.status(404).json({ error: 'No result yet' });
-  res.json(await explain({ verdict: s.result.verdict, checks: s.result.checks, provenance: s.result.verdict.provenance, productName: s.result.read }, lang));
+  const e = await explainOnce(sessionId, lang, { verdict: s.result.verdict, checks: s.result.checks, provenance: s.result.verdict.provenance, productName: s.result.read });
+  if (!e) return res.status(503).json({ error: 'The explanation is not available right now.' });
+  res.json(e);
 }));
 
 export default r;

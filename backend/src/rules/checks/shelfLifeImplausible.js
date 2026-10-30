@@ -6,8 +6,13 @@ const MARGIN_MONTHS = 6;
 export default function shelfLifeImplausible(ctx) {
   const id = 'SHELF_LIFE_IMPLAUSIBLE';
   const life = ctx.product?.normalShelfLifeMonths;
+  // Compare dates from the same source: a printed manufacture date against the
+  // printed expiry. Mixing in the barcode's expiry would just restate
+  // BARCODE_PRINT_MISMATCH in a confusing way.
+  const mfgFromPrint = ctx.fields?.manufactureDate?.source !== 'barcode';
+  const expiry = mfgFromPrint && ctx.printed?.expiry ? ctx.printed.expiry : val(ctx, 'expiry');
   const m = monthIndex(val(ctx, 'manufactureDate'));
-  const e = monthIndex(val(ctx, 'expiry'));
+  const e = monthIndex(expiry);
   if (!life) return result(id, 'hard', 'skipped', 'We do not hold this product\'s normal shelf life.');
   if (m == null || e == null) return result(id, 'hard', 'skipped', 'Manufacture and expiry dates are both needed.');
   const span = e - m;

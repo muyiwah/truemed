@@ -90,7 +90,7 @@ r.post('/investigate', asyncH(async (req, res) => {
     verdict: f.verdict.title,
     failedChecks: f.checks.filter((c) => c.status === 'fail').map((c) => `${c.id}: ${c.reason}`),
     buyerAnswer: s.answer?.sourceType ?? null,
-    at: s.finalizedAt,
+    at: s.finalizedAt ? new Date(s.finalizedAt).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WAT' : null,
   };
   try {
     const cf = await investigate({ trigger }, (step) => p.step(step));

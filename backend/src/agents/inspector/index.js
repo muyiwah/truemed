@@ -25,11 +25,23 @@ const settle = async (label, p) => {
 
 const toRegion = (rec, mask, image, extra = {}) => ({
   image,
-  box: { left: rec.bounds.left, top: rec.bounds.top, right: rec.bounds.right, bottom: rec.bounds.bottom },
+  // Box records carry their corners directly; only mask records have `bounds`.
+  box: { left: rec.left, top: rec.top, right: rec.right, bottom: rec.bottom },
   confidence: rec.confidence ?? null,
   path: mask ? maskPath(mask) : null,
   ...extra,
 });
+
+/** Merge several SAM results, keeping objectIds unique per source. */
+function mergeSam(results) {
+  const ok = results.filter(Boolean);
+  if (!ok.length) return null;
+  return {
+    boxes: ok.flatMap((r, i) => r.boxes.map((b) => ({ ...b, objectId: `${i}:${b.objectId}` }))),
+    masks: ok.flatMap((r, i) => r.masks.map((m) => ({ ...m, objectId: `${i}:${m.objectId}` }))),
+    cost: ok.reduce((sum, r) => sum + (r.cost ?? 0), 0),
+  };
+}
 
 /** Pair SAM box and mask records by objectId. */
 function samRegions(sam, image, extra) {
@@ -64,10 +76,13 @@ export async function inspect(rawImages, { lookupProduct, onStep = () => {} } = 
     content: [textPart(`Read ${images.length === 2 ? 'these two photos (front and back) of one pack' : 'this pack photo'}.`), ...dataUrls.map(imagePart)],
     schema: extractionSchema,
     zod: extractionZod,
+    effort: 'low', // 12.4 s → ~5 s with identical fields on the spike set (Oct 30)
   }).then((r) => { mark('extraction'); onStep('read', { fields: r.data }); return r; }));
 
-  const barcodeSamP = Promise.all(images.map((img, i) => settle('sam-barcode', samImage({ image: dataUrls[i], width: img.width, height: img.height, phrase: 'barcode' }))
-    .then((r) => { mark(`samBarcode${i}`); return r; })));
+  // SAM 3.1 knows a pharma DataMatrix as "qr code" and a linear code as "barcode" (spike, Oct 30).
+  const CODE_PHRASES = ['qr code', 'barcode'];
+  const barcodeSamP = Promise.all(images.map((img, i) => Promise.all(CODE_PHRASES.map((phrase) => settle('sam-barcode', samImage({ image: dataUrls[i], width: img.width, height: img.height, phrase }))))
+    .then((rs) => { mark(`samBarcode${i}`); return mergeSam(rs); })));
   const labelSamP = settle('sam-label', samImage({ image: dataUrls[0], width: images[0].width, height: images[0].height, phrase: 'label' }));
   const zxingFullP = Promise.all(images.map((img) => settle('zxing', readPackBarcode(img.buffer))));
 
@@ -99,22 +114,22 @@ export async function inspect(rawImages, { lookupProduct, onStep = () => {} } = 
   const dateP = dateBox ? (async () => {
     const img = images[dateBox.image];
     const px = normBoxToPixels(dateBox, img.width, img.height);
-    const [sam, cropBuf] = await Promise.all([
-      settle('sam-date', samImage({ image: dataUrls[dateBox.image], width: img.width, height: img.height, boxes: [{ id: 1, box: px }] })),
-      crop(img.buffer, px, { width: img.width, height: img.height, pad: 0.25 }),
-    ]);
-    const mask = sam?.masks?.[0];
-    const samBox = sam?.boxes?.[0];
-    regions.date = samBox ? toRegion(samBox, mask, dateBox.image) : { image: dateBox.image, box: px, confidence: null, path: null };
-    mark('samDate');
+    const cropBuf = await crop(img.buffer, px, { width: img.width, height: img.height, pad: 0.25 });
     onStep('tamper');
-    const tamper = await settle('tamper', sparkJson({
-      label: 'tamper',
-      instructions: TAMPER,
-      content: [textPart('Crop of the batch/expiry area:'), imagePart(toDataUrl(cropBuf)), textPart('Full pack for context:'), imagePart(dataUrls[dateBox.image])],
-      schema: tamperSchema,
-      zod: tamperZod,
-    }));
+    // SAM outlines the date block while Muse Spark examines the same crop.
+    const [sam, tamper] = await Promise.all([
+      settle('sam-date', samImage({ image: dataUrls[dateBox.image], width: img.width, height: img.height, boxes: [{ id: 1, box: px }] })),
+      settle('tamper', sparkJson({
+        label: 'tamper',
+        instructions: TAMPER,
+        content: [textPart('Crop of the batch/expiry area:'), imagePart(toDataUrl(cropBuf)), textPart('Full pack for context:'), imagePart(dataUrls[dateBox.image])],
+        schema: tamperSchema,
+        zod: tamperZod,
+        effort: 'low',
+      })),
+    ]);
+    const samBox = sam?.boxes?.[0];
+    regions.date = samBox ? toRegion(samBox, sam.masks?.[0], dateBox.image) : { image: dateBox.image, box: px, confidence: null, path: null };
     mark('tamper');
     return tamper?.data ?? null;
   })() : Promise.resolve(null);
@@ -128,6 +143,7 @@ export async function inspect(rawImages, { lookupProduct, onStep = () => {} } = 
       content: [textPart('Genuine reference:'), ...refs.slice(0, 3).map(imagePart), textPart('Pack being checked:'), imagePart(dataUrls[0])],
       schema: artworkSchema,
       zod: artworkZod,
+      effort: 'low',
     }));
     mark('artwork');
     return r?.data ?? null;

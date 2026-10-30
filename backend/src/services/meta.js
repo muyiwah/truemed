@@ -86,7 +86,7 @@ export const toDataUrl = (buf, mime = 'image/jpeg') => `data:${mime};base64,${bu
  *
  * @param {{ label: string, instructions: string, content: object[], schema: object, zod: import('zod').ZodTypeAny, timeoutMs?: number }} p
  */
-export async function sparkJson({ label, instructions, content, schema, zod, timeoutMs = 40_000 }) {
+export async function sparkJson({ label, instructions, content, schema, zod, timeoutMs = 40_000, effort }) {
   return guarded(label, async () => {
     let lastErr;
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -94,6 +94,7 @@ export async function sparkJson({ label, instructions, content, schema, zod, tim
         model: config.SPARK_MODEL,
         instructions,
         input: [{ type: 'message', role: 'user', content }],
+        ...(effort ? { reasoning: { effort } } : {}),
         text: { format: { type: 'json_schema', name: label.replace(/[^a-zA-Z0-9_-]/g, '_'), schema, strict: true } },
       }, { timeout: timeoutMs });
       const cost = sparkCost(res.usage);
@@ -112,13 +113,14 @@ export async function sparkJson({ label, instructions, content, schema, zod, tim
 }
 
 /** Muse Spark plain text (explanations). */
-export async function sparkText({ label, instructions, content, timeoutMs = 30_000, tools }) {
+export async function sparkText({ label, instructions, content, timeoutMs = 30_000, tools, effort }) {
   return guarded(label, async () => {
     const res = await meta().responses.create({
       model: config.SPARK_MODEL,
       instructions,
       input: [{ type: 'message', role: 'user', content }],
       ...(tools ? { tools } : {}),
+      ...(effort ? { reasoning: { effort } } : {}),
     }, { timeout: timeoutMs });
     const searches = (res.output ?? []).filter((o) => o.type === 'web_search_call').length;
     const cost = sparkCost(res.usage) + searches * PRICE.webSearch;

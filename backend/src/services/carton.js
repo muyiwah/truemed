@@ -42,14 +42,20 @@ export async function receiveCarton({ video, shopId, source, deviceId, onStep = 
   const v = await prepareVideo(video, { maxSeconds: 15, fps: 10, keyframes: 4 });
 
   onStep({ step: 'track', text: 'SAM 3.1 is tracking every pack in the carton' });
-  const sam = await samVideo({ video: `data:video/mp4;base64,${v.mp4.toString('base64')}`, phrase: 'medicine box', frames: v.frames });
+  // Real cartons answer to "box"; flat packs and printed mocks to "card" (spike, Oct 30).
+  const videoUrl = `data:video/mp4;base64,${v.mp4.toString('base64')}`;
+  let sam = null;
+  for (const phrase of ['box', 'card', 'package']) {
+    sam = await samVideo({ video: videoUrl, phrase, frames: v.frames });
+    if (sam.boxes.length) break;
+  }
 
   // Best frame per object = where its box is largest.
   const best = new Map();
   for (const b of sam.boxes) {
-    const area = (b.bounds.right - b.bounds.left) * (b.bounds.bottom - b.bounds.top);
+    const area = (b.right - b.left) * (b.bottom - b.top);
     const cur = best.get(b.objectId);
-    if (!cur || area > cur.area) best.set(b.objectId, { area, frame: frameIndexOf(b), bounds: b.bounds });
+    if (!cur || area > cur.area) best.set(b.objectId, { area, frame: frameIndexOf(b), bounds: { left: b.left, top: b.top, right: b.right, bottom: b.bottom } });
   }
   const objects = [...best.entries()].slice(0, 16).map(([id, o]) => ({ id, ...o }));
   onStep({ step: 'tracked', text: `Found ${objects.length} pack${objects.length === 1 ? '' : 's'}`, count: objects.length });
@@ -77,6 +83,7 @@ export async function receiveCarton({ video, shopId, source, deviceId, onStep = 
       schema: readSchema,
       zod: readZod,
       timeoutMs: 60_000,
+      effort: 'low',
     }).then((r) => r.data.packs).catch(() => []),
   ]);
 
@@ -89,8 +96,11 @@ export async function receiveCarton({ video, shopId, source, deviceId, onStep = 
     const { fields, printed } = resolveFields({ extracted, barcode: barcodes[i] });
     const ctx = await buildContext({ gate: 'carton', fields, printed, confirmed: false, barcode: barcodes[i], visual: {}, deviceId, receivingShopId: shopId });
     const { checks, verdict } = evaluate(ctx);
-    const textOnlyHard = verdict.code === 'needs_confirmation';
-    const decision = verdict.code === 'high_risk' ? 'rejected' : textOnlyHard || verdict.code === 'caution' || verdict.code === 'cant_verify' ? 'review' : 'accepted';
+    // No per-pack confirm step in a carton: a hard fail on machine-read facts
+    // (barcode, ledger) rejects; one resting only on AI-read text goes to review.
+    const solidHard = checks.some((c) => c.status === 'fail' && c.type === 'hard' && !c.usesReadText);
+    const decision = verdict.code === 'high_risk' || solidHard ? 'rejected'
+      : verdict.code === 'needs_confirmation' || verdict.code === 'caution' || verdict.code === 'cant_verify' ? 'review' : 'accepted';
     const serial = fields.serial?.value ?? null;
     if (decision === 'accepted') await logReceived({ serial, gtin: fields.gtin?.value, batch: fields.batch?.value, expiry: fields.expiry?.value, regNo: fields.regNo?.value, productId: ctx.product?._id, shopId, source });
     if (checks.some((c) => c.id === 'SERIAL_CLONE' && c.status === 'fail')) await notifyClone({ serial, receivingShop: shop, otherShopId: ctx.pack?.shopId });
@@ -109,7 +119,7 @@ export async function receiveCarton({ video, shopId, source, deviceId, onStep = 
   const tone = { accepted: 'green', review: 'amber', rejected: 'red' };
   const regions = sam.boxes.filter((b) => frameIndexOf(b) === keyFrame).map((b) => {
     const p = packs.find((x) => x.objectId === b.objectId);
-    return { label: p ? `${p.serial ?? 'no serial'} · ${p.decision}` : 'pack', tone: tone[p?.decision] ?? 'amber', box: b.bounds };
+    return { label: p ? `${p.serial ?? 'no serial'} · ${p.decision}` : 'pack', tone: tone[p?.decision] ?? 'amber', box: { left: b.left, top: b.top, right: b.right, bottom: b.bottom } };
   });
   const annotated = await renderOverlay(keyImg, { width: v.width, height: v.height, regions });
   const stored = await store(annotated, { folder: 'carton', name: `carton-${Date.now()}.jpg`, kind: 'annotated' });

@@ -11,6 +11,9 @@
  *   6. otherwise → No red flags
  */
 
+const HEADLINE_ORDER = ['SERIAL_CLONE', 'SERIAL_NEVER_ISSUED', 'ALERT_MATCH', 'BARCODE_PRINT_MISMATCH', 'REG_NOT_FOUND', 'REG_PRODUCT_MISMATCH', 'GS1_INVALID', 'WRONG_SHOP', 'ALREADY_SOLD_ELSEWHERE', 'SHELF_LIFE_IMPLAUSIBLE', 'EXPIRED'];
+const rank = (id) => { const i = HEADLINE_ORDER.indexOf(id); return i === -1 ? HEADLINE_ORDER.length : i; };
+
 export const DISCLAIMER = 'This is a screening tool, not a lab test. Confirm with a pharmacist.';
 export const NO_RECORD_NOTE = "This does not mean it's fake.";
 
@@ -25,7 +28,8 @@ const pluralChecks = (n) => `${n} check${n === 1 ? '' : 's'}`;
  */
 export function score(checks, ctx) {
   const passed = checks.filter((c) => c.status === 'pass').length;
-  const hard = checks.filter((c) => c.status === 'fail' && c.type === 'hard');
+  // Lead with the most telling failure (the headline the buyer reads first).
+  const hard = checks.filter((c) => c.status === 'fail' && c.type === 'hard').sort((a, b) => rank(a.id) - rank(b.id));
   const soft = checks.filter((c) => c.status === 'fail' && c.type === 'soft');
   const failed = [...hard, ...soft].map((c) => c.id);
   const base = { passed, failed, disclaimer: DISCLAIMER, provenance: provenanceLine(ctx) };

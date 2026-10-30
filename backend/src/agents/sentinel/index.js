@@ -69,7 +69,7 @@ export async function ingest({ url, text }) {
   }
   if (!rawText) throw Object.assign(new Error('Give an alert URL or paste its text'), { status: 400 });
 
-  const { data } = await sparkJson({ label: 'sentinel-parse', instructions: INSTRUCTIONS, content: [textPart(rawText)], schema, zod });
+  const { data } = await sparkJson({ label: 'sentinel-parse', instructions: INSTRUCTIONS, content: [textPart(rawText)], schema, zod, effort: 'low' });
   const alert = await Alert.create({
     ...data,
     issuedAt: data.issuedAt && !Number.isNaN(Date.parse(data.issuedAt)) ? new Date(data.issuedAt) : null,

@@ -15,6 +15,14 @@ export function VerdictCard({ verdict, explanation, sessionId, language, t, capt
   const [lang, setLang] = useState(explanation?.lang ?? language);
   const [loadingLang, setLoadingLang] = useState(null);
 
+  // The verdict arrives first; Muse Spark's explanation follows.
+  useEffect(() => {
+    if (exp || !sessionId) return;
+    let live = true;
+    post('/explain', { sessionId, lang: language }).then((e) => live && (setExp(e), setLang(e.lang))).catch(() => {});
+    return () => { live = false; };
+  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const switchLang = async (l) => {
     if (l === lang) return;
     setLoadingLang(l);
@@ -42,6 +50,12 @@ export function VerdictCard({ verdict, explanation, sessionId, language, t, capt
           <div className={clsx('flex gap-3 rounded-2xl p-3 text-[15px] text-ink', v.tone === 'ok' ? 'bg-ok-soft' : 'bg-mute-soft')}>
             <MapPin className={clsx('mt-0.5 size-5 shrink-0', v.tone === 'ok' ? 'text-ok' : 'text-ink-3')} />
             <p>{verdict.provenance}</p>
+          </div>
+        )}
+        {!exp?.text && (
+          <div className="rounded-2xl bg-paper p-4">
+            <div className="mb-3 flex items-center justify-between"><span className="text-sm text-ink-3">Writing your explanation…</span>{captions && <ModelTag model="Muse Spark" active />}</div>
+            <div className="space-y-2">{[92, 80, 64].map((w) => <div key={w} className="h-3 animate-pulse rounded-full bg-line" style={{ width: `${w}%` }} />)}</div>
           </div>
         )}
         {exp?.text && (

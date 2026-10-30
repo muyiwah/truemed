@@ -190,14 +190,21 @@ async function finalize(session, { checks, verdict, ctx, fields }) {
   session.markModified('result');
   await session.save();
 
-  // Explanation in the user's language; never blocks the verdict.
-  let explanation = null;
-  try {
-    explanation = await explain({ verdict, checks, provenance: verdict.provenance, productName: result.read }, session.language);
-  } catch (err) {
-    log.warn({ err: err.message }, 'explain failed');
+  // The explanation is written in the background so the verdict shows at once;
+  // the UI fetches it from /explain, which reuses this promise.
+  explainOnce(String(session._id), session.language, { verdict, checks, provenance: verdict.provenance, productName: result.read });
+  return { sessionId: String(session._id), stage: 'result', ...result, explanation: null };
+}
+
+const explanations = new Map(); // `${sessionId}:${lang}` → Promise
+export function explainOnce(sessionId, lang, evidence) {
+  const key = `${sessionId}:${lang}`;
+  if (!explanations.has(key)) {
+    const p = explain(evidence, lang).catch((err) => { log.warn({ err: err.message }, 'explain failed'); explanations.delete(key); return null; });
+    explanations.set(key, p);
+    if (explanations.size > 500) explanations.delete(explanations.keys().next().value);
   }
-  return { sessionId: String(session._id), stage: 'result', ...result, explanation };
+  return explanations.get(key);
 }
 
 /** A pharmacist overrides "review" at receiving after looking at the pack. */

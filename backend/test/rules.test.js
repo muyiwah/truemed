@@ -59,6 +59,12 @@ describe('verdicts', () => {
     expect(r.verdict.code).toBe('high_risk');
   });
 
+  it('headline leads with the barcode/print mismatch, not plain expiry', () => {
+    const r = evaluate(ctx({ barcode: { ...goodBarcode, expiry: '2025-05' }, confirmed: true }));
+    expect(r.verdict.line).toMatch(/^The barcode says expiry 2025-05, but the box says 2028-05\./);
+    expect(r.checks.find((c) => c.id === 'SHELF_LIFE_IMPLAUSIBLE').status).toBe('pass');
+  });
+
   it('shelf-life implausible catches relabeled dates', () => {
     const r = evaluate(ctx({ barcode: null, extracted: { ...goodText, manufactureDate: '2022-01', expiryDate: '2029-01' }, confirmed: true }));
     expect(ids(r)).toContain('SHELF_LIFE_IMPLAUSIBLE');

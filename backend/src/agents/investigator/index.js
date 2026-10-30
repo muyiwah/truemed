@@ -23,13 +23,14 @@ const tools = [
   { type: 'function', name: 'getProduct', description: 'Registry record for a NAFDAC registration number.', parameters: { type: 'object', additionalProperties: false, required: ['regNo'], properties: { regNo: { type: 'string' } } } },
 ];
 
-const brief = (scan) => ({ type: scan.type, at: scan.createdAt, shopId: scan.shopId ? String(scan.shopId) : null, city: scan.city ?? null, verdict: scan.verdict?.code, failed: scan.verdict?.failed ?? [], answer: scan.answerShop?.sourceType ?? null });
+const lagos = (d) => (d ? new Date(d).toLocaleString('en-GB', { timeZone: 'Africa/Lagos', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WAT' : null);
+const brief = (scan) => ({ type: scan.type, at: lagos(scan.createdAt), shopId: scan.shopId ? String(scan.shopId) : null, city: scan.city ?? null, verdict: scan.verdict?.code, failed: scan.verdict?.failed ?? [], answer: scan.answerShop?.sourceType ?? null });
 
 const impl = {
   async getPackHistory({ serial }) {
     const pack = await Pack.findOne({ serial }).lean();
     const scans = await ScanEvent.find({ serial }).sort({ createdAt: 1 }).limit(30).lean();
-    return { pack: pack && { serial: pack.serial, batch: pack.batch, expiry: pack.expiry, shopId: String(pack.shopId), source: pack.source, supplierName: pack.supplierName, status: pack.status, receivedAt: pack.receivedAt, soldAt: pack.soldAt }, scans: scans.map(brief) };
+    return { pack: pack && { serial: pack.serial, batch: pack.batch, expiry: pack.expiry, shopId: String(pack.shopId), source: pack.source, supplierName: pack.supplierName, status: pack.status, receivedAt: lagos(pack.receivedAt), soldAt: lagos(pack.soldAt) }, scans: scans.map(brief) };
   },
   async getShop({ shopId }) {
     const s = await Shop.findById(shopId).lean().catch(() => null);
@@ -54,7 +55,7 @@ const impl = {
   },
 };
 
-const INSTRUCTIONS = `You are TrueMed's Investigator, working for pharmacists and regulators in Nigeria. A medicine pack was flagged. Use the tools to establish the facts: the pack's history, the shops involved, matching NAFDAC alerts, other scans of the batch, and shop reconciliation. Call tools step by step, starting with the most informative. Stop when you have enough (at most ${MAX_STEPS} tool calls). Never speculate beyond what the tools return; if something is unknown, say so. Use the names of shops as the tools return them.`;
+const INSTRUCTIONS = `You are TrueMed's Investigator, working for pharmacists and regulators in Nigeria. A medicine pack was flagged. Use the tools to establish the facts: the pack's history, the shops involved, matching NAFDAC alerts, other scans of the batch, and shop reconciliation. Call tools step by step, starting with the most informative. Stop when you have enough (at most ${MAX_STEPS} tool calls). Never speculate beyond what the tools return; if something is unknown, say so. Use the names of shops as the tools return them. Look up each shop at most once, and only shops that matter to this pack.`;
 
 const caseSchema = {
   type: 'object', additionalProperties: false,
@@ -92,37 +93,47 @@ export async function investigate({ trigger }, onStep = () => {}) {
 
   try {
     const opening = `Flagged pack:\n${JSON.stringify(trigger, null, 2)}\n\nInvestigate.`;
-    let { res } = await sparkRaw('investigator', { instructions: INSTRUCTIONS, input: [{ type: 'message', role: 'user', content: [textPart(opening)] }], tools });
+    // Stateless loop: we resend the whole conversation each turn. Meta's stored
+    // responses (previous_response_id) intermittently 400 with "referenced
+    // response not found or expired" (seen Oct 30), so we don't depend on them.
+    const history = [{ type: 'message', role: 'user', content: [textPart(opening)] }];
+    const turn = () => sparkRaw('investigator', { instructions: INSTRUCTIONS, input: history, tools, reasoning: { effort: 'low' } });
+    let { res } = await turn();
     const gathered = [];
     let steps = 0;
 
     while (steps < MAX_STEPS) {
       const calls = (res.output ?? []).filter((o) => o.type === 'function_call');
       if (!calls.length) break;
-      const outputs = [];
+      history.push(...calls.map(({ type, call_id, name, arguments: args }) => ({ type, call_id, name, arguments: args })));
       for (const call of calls) {
-        if (steps >= MAX_STEPS) break;
-        steps++;
-        let args = {};
-        try { args = JSON.parse(call.arguments || '{}'); } catch { /* validated below */ }
-        const fn = impl[call.name];
-        const output = fn ? await fn(args).catch((e) => ({ error: e.message })) : { error: 'unknown tool' };
-        gathered.push({ tool: call.name, args, output });
-        await push({ kind: 'tool', tool: call.name, args, summary: summarize(call.name, output) });
-        outputs.push({ type: 'function_call_output', call_id: call.call_id, output: JSON.stringify(output).slice(0, 12_000) });
+        let output;
+        if (steps >= MAX_STEPS) {
+          output = { error: 'step limit reached' };
+        } else {
+          steps++;
+          let args = {};
+          try { args = JSON.parse(call.arguments || '{}'); } catch { /* bad JSON → tool sees {} */ }
+          const fn = impl[call.name];
+          output = fn ? await fn(args).catch((e) => ({ error: e.message })) : { error: 'unknown tool' };
+          gathered.push({ tool: call.name, args, output });
+          await push({ kind: 'tool', tool: call.name, args, summary: summarize(call.name, output) });
+        }
+        history.push({ type: 'function_call_output', call_id: call.call_id, output: JSON.stringify(output).slice(0, 12_000) });
       }
-      ({ res } = await sparkRaw('investigator', { previous_response_id: res.id, input: outputs, tools }));
+      ({ res } = await turn());
     }
     if (res.output_text) await push({ kind: 'thought', text: res.output_text.slice(0, 1200) });
 
     await push({ kind: 'writing', text: 'Writing the case file' });
     const { data } = await sparkJson({
       label: 'case-file',
-      instructions: `Write a case file from the investigation facts. Use only these facts. draftReport: a short, formal report to NAFDAC Pharmacovigilance / the Pharmacists Council of Nigeria that the user will review and send themselves; include product, batch, serial, where found, what failed, and dates. No speculation; mark unknowns as unknown. Do not include personal data about buyers.`,
+      instructions: `Write a case file from the investigation facts. Use only these facts. Write dates like "30 Oct 2026, 07:23 WAT", never raw timestamps or database ids. draftReport: a short, formal report to NAFDAC Pharmacovigilance / the Pharmacists Council of Nigeria that the user will review and send themselves; include product, batch, serial, where found, what failed, and dates. No speculation; mark unknowns as unknown. Do not include personal data about buyers.`,
       content: [textPart(JSON.stringify({ trigger, findings: gathered, investigatorNotes: res.output_text ?? null }).slice(0, 60_000))],
       schema: caseSchema,
       zod: caseZod,
       timeoutMs: 60_000,
+      effort: 'low',
     });
     cf.caseFile = data;
     cf.summary = data.headline;

@@ -15,7 +15,7 @@ import { decodeMaskToSVGPath } from '@meta-sam/parser';
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobeStatic.path);
 
-const MAX_SIDE = 2000;
+const MAX_SIDE = 1600; // plenty for print legibility; fewer image tokens, faster reads
 
 /** Upright, ≤2000px, JPEG. Returns buffer + size (SAM box tokens need the exact size). */
 export async function normalizeImage(input) {
@@ -80,9 +80,13 @@ export function normBoxToPixels(b, width, height) {
 /** SVG path for a SAM mask, in full-image coordinates (for the web overlay and PNG render). */
 export function maskPath(maskRecord) {
   try {
+    // The mask raster may be smaller than its box (SAM downsamples large masks),
+    // so scale the path from raster pixels to the box it covers.
     const d = decodeMaskToSVGPath(maskRecord.mask);
-    const { left, top } = maskRecord.bounds ?? { left: 0, top: 0 };
-    return { d, transform: `translate(${left} ${top})` };
+    const { left, top, right, bottom } = maskRecord.bounds ?? { left: 0, top: 0, right: maskRecord.mask.width, bottom: maskRecord.mask.height };
+    const sx = (right - left) / maskRecord.mask.width;
+    const sy = (bottom - top) / maskRecord.mask.height;
+    return { d, transform: `translate(${left} ${top}) scale(${sx.toFixed(5)} ${sy.toFixed(5)})` };
   } catch {
     return null;
   }

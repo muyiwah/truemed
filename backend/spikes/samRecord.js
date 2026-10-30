@@ -1,0 +1,13 @@
+import 'dotenv/config';
+import mongoose from 'mongoose';
+import { connectDb } from '../src/db/connect.js';
+import { samImage, toDataUrl } from '../src/services/meta.js';
+import { normalizeImage } from '../src/services/media.js';
+import { SAMPLES, renderSample } from '../src/demo/samples.js';
+await connectDb();
+const img = await normalizeImage(await renderSample(SAMPLES[1]));
+const r = await samImage({ image: toDataUrl(img.buffer), width: img.width, height: img.height, phrase: process.argv[2] || 'label' });
+const show = (x) => JSON.stringify(x, (k, v) => (k === 'payload' ? `${String(v).slice(0, 20)}…` : v), 1);
+console.log('BOX', show(r.boxes[0]));
+console.log('MASK', show(r.masks[0]));
+await mongoose.disconnect();
