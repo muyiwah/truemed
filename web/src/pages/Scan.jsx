@@ -45,7 +45,11 @@ export default function Scan() {
   const photoUrl = sampleId ? `${API}/samples/${sampleId}.jpg` : photos[photos.length > 1 ? 1 : 0]?.url;
   const firstPhoto = sampleId ? `${API}/samples/${sampleId}.jpg` : photos[0]?.url;
 
-  useEffect(() => () => photos.forEach((p) => URL.revokeObjectURL(p.url)), [photos]);
+  // Free the photo previews only when leaving the page (not on every change,
+  // or the front photo's preview dies when the back photo is added).
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
+  useEffect(() => () => photosRef.current.forEach((p) => URL.revokeObjectURL(p.url)), []);
 
   // Samples start immediately.
   useEffect(() => {
@@ -96,7 +100,7 @@ export default function Scan() {
     setBusy(false);
   };
 
-  const reset = () => { setPhotos([]); setScan(null); setSteps([]); setError(null); setStage('front'); if (sampleId) navigate('/check'); };
+  const reset = () => { photos.forEach((p) => URL.revokeObjectURL(p.url)); setPhotos([]); setScan(null); setSteps([]); setError(null); setStage('front'); if (sampleId) navigate('/check'); };
 
   const lab = stage === 'analysing';
 

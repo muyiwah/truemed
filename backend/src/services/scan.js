@@ -13,7 +13,8 @@ import { inspect } from '../agents/inspector/index.js';
 import { explain } from '../agents/voice/index.js';
 import { evaluate, publicView, resolveFields } from '../rules/index.js';
 import { buildContext, lookupForInspector, logReceived, claimPack, notifyClone } from './ledger.js';
-import { store } from './storage.js';
+import { store, storageEnabled } from './storage.js';
+import { saveFieldScan } from './fieldLog.js';
 import { log } from '../lib/log.js';
 
 const FIELD_LABELS = { regNo: 'NAFDAC number', batch: 'Batch', expiry: 'Expiry date', manufactureDate: 'Manufacture date', brandName: 'Product name', genericName: 'Active ingredient', strength: 'Strength', serial: 'Serial number' };
@@ -22,7 +23,7 @@ const isVerified = (role) => role === 'pharmacist' || role === 'chemist' || role
 
 /** The values shown on the confirm screen. */
 function readValues(fields, confirmFields) {
-  const show = new Set([...(confirmFields ?? []), 'brandName', 'regNo', 'batch', 'expiry']);
+  const show = new Set(['brandName', 'regNo', 'batch', 'manufactureDate', 'expiry', ...(confirmFields ?? [])]);
   return [...show].filter((k) => FIELD_LABELS[k]).map((k) => ({
     key: k,
     label: FIELD_LABELS[k],
@@ -77,6 +78,9 @@ export async function startScan({ gate, files, deviceId, role, shopId, source, c
     if (sampleId && insp.aiAvailable) sampleCache.set(sampleId, insp);
   }
 
+  // Field-test capture: without ImageKit, keep a local copy for the eval set.
+  if (!sampleId && !storageEnabled()) saveFieldScan(String(session._id), { gate, files, insp }).catch((err) => log.warn({ err: err.message }, 'field log failed'));
+
   // Store photos in the background; never block the scan on it.
   const stored = sampleId ? Promise.resolve() : Promise.all(insp.images.map((img, i) => store(img.buffer, { folder: `scans/${gate}`, name: `${session._id}-${i}.jpg`, kind: 'photo' })))
     .then((m) => ScanSession.updateOne({ _id: session._id }, { $set: { images: m.filter(Boolean) } }))
@@ -113,6 +117,11 @@ async function advance(session) {
 
   if (verdict.code === 'needs_confirmation') {
     return { ...base, stage: 'confirm', confirmFields: verdict.confirmFields, message: verdict.line };
+  }
+  // Rule 2: the person always sees what was read from a real photo before any
+  // verdict. Samples skip this so judges get an instant run.
+  if (!session.confirmed && !session.sampleId) {
+    return { ...base, stage: 'confirm', confirmFields: [], message: null };
   }
   if (session.gate === 'home' && !session.answer) {
     return { ...base, stage: 'ask_shop' };

@@ -10,3 +10,6 @@ backend/eval/results.json
 *.log
 .vercel
 backend/spikes/*.jpg
+
+# Field-test scans (real pack photos)
+backend/data/
