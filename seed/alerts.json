@@ -1,0 +1,75 @@
+{
+  "_note": "Real NAFDAC cases, each field copied from the cited source on 2026-10-30. Unknown fields are null. Do not add values that the source does not state.",
+  "alerts": [
+    {
+      "key": "herceptin-2026",
+      "alertNo": null,
+      "title": "Counterfeit Herceptin 600mg (trastuzumab) in circulation",
+      "productName": "Herceptin 600mg",
+      "issuedAt": null,
+      "type": "falsified",
+      "regNoOnFake": null,
+      "genuineRegNo": null,
+      "batches": [{ "batchNo": "A8519B34", "expiry": "2026-11" }],
+      "telltaleSigns": ["Incorrect artwork on the packaging", "Wrong expiry date", "Invalid 2D matrix code", "Batch A8519B34 is not a genuine Roche batch number", "Offered at a significantly reduced price"],
+      "sourceUrl": "https://nairametrics.com/2026/03/26/nafdac-alerts-nigerians-over-counterfeit-stomach-cancer-drug-herceptin-in-circulation/",
+      "status": "approved"
+    },
+    {
+      "key": "chloroquine-2024",
+      "alertNo": null,
+      "title": "Falsified Chloroquine Phosphate tablets carrying an unregistered NAFDAC number",
+      "productName": "Chloroquine Phosphate tablets",
+      "issuedAt": "2024-02-04",
+      "type": "falsified",
+      "regNoOnFake": "04-8769",
+      "genuineRegNo": null,
+      "batches": [],
+      "telltaleSigns": ["Carries NAFDAC number 04-8769, which is not in NAFDAC's database", "Contains no active pharmaceutical ingredient (TLC screening)", "Bought from an informal dispensary in Jos"],
+      "sourceUrl": "https://nairametrics.com/?p=479031",
+      "status": "approved"
+    },
+    {
+      "key": "dostinex-2026",
+      "alertNo": "07/2026",
+      "title": "Falsified and parallel-imported Dostinex 0.5mg batches",
+      "productName": "Dostinex 0.5mg",
+      "issuedAt": null,
+      "type": "falsified",
+      "regNoOnFake": null,
+      "genuineRegNo": null,
+      "batches": [{ "batchNo": "GG3470", "expiry": null }, { "batchNo": "LG8659", "expiry": null }, { "batchNo": "GG2440", "expiry": null }],
+      "telltaleSigns": ["Batches GG3470, LG8659, GG2440", "The genuine product is registered but not yet imported (per Nairametrics)"],
+      "sourceUrl": "https://www.vanguardngr.com/2026/02/beware-of-counterfeit-dostinex-tablets-nafdac-warns",
+      "status": "approved"
+    },
+    {
+      "key": "sma-gold-2026",
+      "alertNo": null,
+      "title": "Revalidated SMA Gold First Infant Milk 900g (dates altered with a sticker)",
+      "productName": "SMA Gold First Infant Milk 900g",
+      "issuedAt": null,
+      "type": "revalidated",
+      "regNoOnFake": "B1-2783",
+      "genuineRegNo": "B1-2783",
+      "batches": [{ "batchNo": "22939510A1206", "expiry": "2027-01" }],
+      "telltaleSigns": ["A preprinted sticker on top shows dates that do not match the original printed dates underneath", "Sticker dates: manufactured 20 Jan 2025, expiry 20 Jan 2027"],
+      "sourceUrl": "https://allafrica.com/stories/202602230576.html",
+      "status": "approved"
+    },
+    {
+      "key": "coglaet-2026",
+      "alertNo": "022/2026",
+      "title": "Suspected counterfeit 'Coglaet' toothpaste imitating Colgate (Kaduna)",
+      "productName": "Coglaet ActivGel 100g / Coglaet Herbal 100g",
+      "issuedAt": "2026-03-25",
+      "type": "unregistered",
+      "regNoOnFake": null,
+      "genuineRegNo": null,
+      "batches": [],
+      "telltaleSigns": ["Brand name misspelt 'Coglaet'", "Mimics Colgate packaging", "No valid NAFDAC registration number or batch markings", "Stated manufacturer in Guangzhou, China"],
+      "sourceUrl": "https://nairametrics.com/2026/04/17/nafdac-alerts-nigerians-to-counterfeit-colgate-toothpaste-in-circulation/",
+      "status": "approved"
+    }
+  ]
+}

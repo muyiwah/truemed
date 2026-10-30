@@ -1,0 +1,32 @@
+{
+  "_note": "Registry reference products. Real products MUST be hand-copied from the official NAFDAC Greenbook (greenbook.nafdac.gov.ng) with that page's URL as sourceUrl. Never invent a registration number (rule 8). TODO(data): add 20-30 common medicines + 1-2 toothpaste/baby food entries with genuine pack photos.",
+  "products": [
+    {
+      "key": "demoquin",
+      "brandName": "DemoQuin",
+      "genericName": "Artemether Lumefantrine",
+      "strength": "20/120mg",
+      "dosageForm": "tablet",
+      "manufacturer": "DemoQuin Pharma (fictional)",
+      "nafdacRegNo": "DEMO-0001",
+      "gtins": ["__DEMO_GTIN__"],
+      "category": "medicine",
+      "normalShelfLifeMonths": 24,
+      "sourceUrl": "demo://truemed/demoquin",
+      "demo": true
+    },
+    {
+      "key": "sma-gold",
+      "brandName": "SMA Gold",
+      "genericName": "First Infant Milk",
+      "strength": "900g",
+      "dosageForm": "powder",
+      "manufacturer": "Nestlé (as reported by NAFDAC)",
+      "nafdacRegNo": "B1-2783",
+      "gtins": [],
+      "category": "food",
+      "normalShelfLifeMonths": null,
+      "sourceUrl": "https://allafrica.com/stories/202602230576.html"
+    }
+  ]
+}

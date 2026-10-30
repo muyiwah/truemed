@@ -1,0 +1,12 @@
+{
+  "_note": "All shops are fictional (rule 9). Names carry '(demo)'.",
+  "shops": [
+    { "key": "ikeja", "name": "Ikeja Care Pharmacy (demo)", "type": "pharmacy", "licenceNo": "DEMO-PCN-001", "area": "Ikeja", "city": "Lagos", "approxLocation": { "lat": 6.6018, "lng": 3.3515 }, "aliases": ["Ikeja Care", "the pharmacy in Ikeja"] },
+    { "key": "yaba", "name": "Yaba Family Pharmacy (demo)", "type": "pharmacy", "licenceNo": "DEMO-PCN-002", "area": "Yaba", "city": "Lagos", "approxLocation": { "lat": 6.5095, "lng": 3.3711 }, "aliases": ["Yaba Family", "the pharmacy near Yaba market"] },
+    { "key": "lekki", "name": "Lekki Wellness Pharmacy (demo)", "type": "pharmacy", "licenceNo": "DEMO-PCN-003", "area": "Lekki", "city": "Lagos", "approxLocation": { "lat": 6.4474, "lng": 3.4727 }, "aliases": ["Lekki Wellness"] },
+    { "key": "ojo", "name": "Ojo Licensed Chemist (demo)", "type": "licensed_chemist", "licenceNo": "DEMO-PPMV-101", "area": "Ojo", "city": "Lagos", "approxLocation": { "lat": 6.4628, "lng": 3.1802 }, "aliases": ["Mama Bisi chemist", "the chemist for Ojo junction", "Ojo chemist"] },
+    { "key": "ikorodu", "name": "Ikorodu Licensed Chemist (demo)", "type": "licensed_chemist", "licenceNo": "DEMO-PPMV-102", "area": "Ikorodu", "city": "Lagos", "approxLocation": { "lat": 6.6194, "lng": 3.5105 }, "aliases": ["Ikorodu chemist"] },
+    { "key": "kano", "name": "Sabon Gari Pharmacy (demo)", "type": "pharmacy", "licenceNo": "DEMO-PCN-201", "area": "Sabon Gari", "city": "Kano", "approxLocation": { "lat": 12.0105, "lng": 8.5320 }, "aliases": ["Sabon Gari pharmacy"] },
+    { "key": "ibadan", "name": "Dugbe Pharmacy (demo)", "type": "pharmacy", "licenceNo": "DEMO-PCN-301", "area": "Dugbe", "city": "Ibadan", "approxLocation": { "lat": 7.3878, "lng": 3.8836 }, "aliases": ["Dugbe pharmacy"] }
+  ]
+}
