@@ -3,6 +3,9 @@ import mongoose from 'mongoose';
 const { Schema, model } = mongoose;
 
 /** A file in ImageKit. `isPrivate` files are served via short-lived signed URLs. */
+/** Scan sessions (photos ↔ what the AI read ↔ the user's corrections) are kept two weeks for the eval set. */
+export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
+
 const media = new Schema({ fileId: String, filePath: String, url: String, isPrivate: Boolean, kind: String }, { _id: false });
 
 const productSchema = new Schema({
@@ -122,7 +125,7 @@ const scanSessionSchema = new Schema({
   timings: Schema.Types.Mixed,
   sampleId: String,
   finalizedAt: Date,
-  createdAt: { type: Date, default: Date.now, expires: 60 * 60 * 24 * 7 },
+  createdAt: { type: Date, default: Date.now, expires: SESSION_TTL_SECONDS },
 }, { versionKey: false });
 
 const caseFileSchema = new Schema({

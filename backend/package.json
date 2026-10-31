@@ -11,7 +11,8 @@
     "start": "node src/server.js",
     "test": "vitest run",
     "seed": "node src/db/seed/run.js",
-    "eval": "node eval/runEval.js"
+    "eval": "node eval/runEval.js",
+    "export:field": "node scripts/exportField.js"
   },
   "dependencies": {
     "@meta-sam/parser": "^0.1.0",

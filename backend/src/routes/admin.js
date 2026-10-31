@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { Alert, IssuedSerial } from '../db/models/index.js';
+import { Alert, IssuedSerial, ScanSession } from '../db/models/index.js';
+import { viewUrl } from '../services/storage.js';
 import { ingest, approve, matchPacks } from '../agents/sentinel/index.js';
 import { issue, dispatch, label, resetDemo, SCENARIOS, DEMO_GTIN } from '../demo/demoquin.js';
 import { requireAdmin, asyncH } from './middleware.js';
@@ -24,6 +25,16 @@ r.post('/alerts/:id/approve', requireAdmin, asyncH(async (req, res) => {
 r.post('/alerts/:id/reject', requireAdmin, asyncH(async (req, res) => {
   await Alert.updateOne({ _id: req.params.id }, { $set: { status: 'rejected' } });
   res.json({ ok: true });
+}));
+
+// --- Field-test export (eval set) ---
+// Real scans only, with short-lived photo links. Read by scripts/exportField.js.
+r.get('/field-scans', requireAdmin, asyncH(async (req, res) => {
+  const since = z.coerce.date().optional().catch(undefined).parse(req.query.since);
+  const sessions = await ScanSession.find({ sampleId: null, ...(since ? { createdAt: { $gte: since } } : {}) })
+    .select('gate role city language images extracted barcode visual quality userValues confirmed answer result timings createdAt finalizedAt')
+    .sort({ createdAt: 1 }).limit(1000).lean();
+  res.json(sessions.map(({ images, ...s }) => ({ ...s, photos: (images ?? []).map((m) => viewUrl(m, { expireSeconds: 900 })).filter(Boolean) })));
 }));
 
 // --- DemoQuin ---
