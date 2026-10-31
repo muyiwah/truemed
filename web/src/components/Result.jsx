@@ -154,6 +154,7 @@ export function EvidenceTrail({ checks, t }) {
                 {c.source && /^https?:/.test(c.source) && (
                   <a href={c.source} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline">Source <ExternalLink className="size-3" /></a>
                 )}
+                {c.source && !/^(https?|demo):/.test(c.source) && <p className="mt-1 text-xs text-ink-3">Source: {c.source}</p>}
               </div>
             </motion.li>
           );

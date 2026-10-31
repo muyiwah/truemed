@@ -20,7 +20,17 @@ const SOFT = [
   ['Not a lookalike brand', '“Coglaet” for Colgate'],
   ['First check of this pack', 'Another phone already checked this serial nearby'],
 ];
+const REGISTRY = [
+  ['Greenbook, copied by hand', 'Real products, each linked to its NAFDAC Greenbook page. We never bulk-copy the portal.'],
+  ['NAFDAC sandbox (simulated)', 'Our mock of the API NAFDAC’s 2024 traceability rules imply, for the fictional DemoQuin brand only. Not operated by NAFDAC.'],
+  ['NAFDAC registry API', 'Not connected: NAFDAC has not opened one. TrueMed is built so connecting it is configuration, not a rebuild.'],
+  ['No answer', 'If no source can answer, the number is never called fake; the verdict is “No record”.'],
+];
+// VITE_API_URL ends in /api; the sandbox sits beside it.
+const SANDBOX = `${(import.meta.env.VITE_API_URL || '').replace(/\/api\/?$/, '')}/sandbox/nafdac/v1`;
+
 const LIMITS = [
+  'NAFDAC has no public API. Real registrations come from records copied by hand, so many genuine products show “No record” until NAFDAC opens access.',
   'A perfect copy with an invented serial passes until brands share the serials they actually issued. That integration is the first production step — DemoQuin shows how it works.',
   'Packs with only a batch number (no unit serial) can’t be bound to one shop; a mismatch is Caution only.',
   'What is inside the pack needs a lab. TrueMed checks the pack, not the pill.',
@@ -60,6 +70,16 @@ export default function How() {
         <section className="grid gap-6 md:grid-cols-2">
           <div><h2 className="display mb-3 text-2xl font-semibold">Hard facts</h2><List items={HARD} /></div>
           <div><h2 className="display mb-3 text-2xl font-semibold">AI judgement <span className="text-base font-normal text-ink-3">(Caution at most)</span></h2><List items={SOFT} /></div>
+        </section>
+
+        <section>
+          <h2 className="display mb-3 text-2xl font-semibold">Where NAFDAC data comes from</h2>
+          <p className="mb-3 text-ink-2">NAFDAC has no public API yet, so TrueMed asks the most honest source it has, and says which one answered.</p>
+          <List items={REGISTRY} />
+          <p className="mt-3 text-sm text-ink-3">
+            Try the sandbox: <a className="font-medium text-brand hover:underline" href={`${SANDBOX}/registrations/DEMO-0001`} target="_blank" rel="noreferrer">DEMO-0001</a> (registered) ·{' '}
+            <a className="font-medium text-brand hover:underline" href={`${SANDBOX}/registrations/DEMO-0099`} target="_blank" rel="noreferrer">DEMO-0099</a> (not registered)
+          </p>
         </section>
 
         <section>

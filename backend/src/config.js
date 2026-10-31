@@ -25,6 +25,14 @@ const schema = z.object({
   PHARMACIST_DEMO_PIN: z.string().default('2468'),
   ALLOWED_ORIGINS: z.string().default('http://localhost:5173'),
   GREENBOOK_LOOKUP: z.enum(['on', 'off']).default('off'),
+  // Simulated NAFDAC API for DemoQuin (docs/NAFDAC_INTEGRATION.md). Not NAFDAC.
+  NAFDAC_SANDBOX: z.enum(['on', 'off']).default('on'),
+  NAFDAC_SANDBOX_URL: z.string().url().optional(),
+  // A real NAFDAC registry API, if NAFDAC ever exposes one. Unset = not connected.
+  NAFDAC_API_URL: z.string().url().optional(),
+  NAFDAC_API_KEY: z.string().optional(),
+  // Public base of this API, for clickable evidence links (e.g. https://api.truemed.finessedev.space).
+  PUBLIC_API_URL: z.string().url().optional(),
 });
 
 const parsed = schema.safeParse(process.env);

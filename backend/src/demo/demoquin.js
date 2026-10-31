@@ -7,7 +7,7 @@
  * product), so it can't collide with a real brand.
  */
 import { withCheckDigit } from '../lib/gs1.js';
-import { IssuedSerial, Pack, Shop, Product, ScanEvent, Notification, CaseFile } from '../db/models/index.js';
+import { IssuedSerial, Pack, Shop, Product, ScanEvent, Notification, CaseFile, SandboxEvent } from '../db/models/index.js';
 import { makeDemoLabel } from '../services/barcode.js';
 
 export const DEMO_GTIN = withCheckDigit('0200000000001');
@@ -59,6 +59,7 @@ export async function resetDemo() {
     ScanEvent.collection.deleteMany({ serial: demoSerials }),
     Notification.deleteMany({ 'refs.serial': demoSerials }),
     CaseFile.deleteMany({ serials: demoSerials }),
+    SandboxEvent.deleteMany({ gtin: DEMO_GTIN }),
   ]);
 
   await IssuedSerial.insertMany(Array.from({ length: 20 }, (_, i) => ({ gtin: DEMO_GTIN, serial: serialOf(i + 1), batch: DEMO_BATCH, expiry: DEMO_EXPIRY, issuedAt: new Date(), dispatchedAt: i < 15 ? new Date() : null })));

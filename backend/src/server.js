@@ -11,6 +11,8 @@ import scanRoutes from './routes/scan.js';
 import miscRoutes from './routes/misc.js';
 import adminRoutes from './routes/admin.js';
 import insightsRoutes from './routes/insights.js';
+import nafdacSandbox from './sandbox/nafdac.js';
+import { SANDBOX_PATH } from './registry/index.js';
 
 const app = express();
 app.set('trust proxy', 1); // behind nginx
@@ -31,6 +33,11 @@ app.use('/api', miscRoutes);
 app.use('/api', scanRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', insightsRoutes);
+
+// Simulated NAFDAC registry for DemoQuin (public, read-only from outside).
+if (config.NAFDAC_SANDBOX === 'on') {
+  app.use(SANDBOX_PATH, rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false, skip: (req) => !req.get('x-forwarded-for') && req.socket.remoteAddress?.endsWith('127.0.0.1') }), nafdacSandbox);
+}
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 // eslint-disable-next-line no-unused-vars

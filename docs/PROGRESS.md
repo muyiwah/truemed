@@ -27,6 +27,12 @@
 
 - **Deployed (Oct 31):** API https://api.truemed.finessedev.space (VPS, PM2 `truemed-api`, port 4080, Nginx + Let's Encrypt; DB = `truemed` database/user in the VPS `mongodb` Docker container; ImageKit folder `/truemed`). Web https://truemed.finessedev.space (Vercel project `truemed`, deployed with the Vercel CLI, `VITE_API_URL` set at build). Redeploy: `infra/deploy.sh` (API), `cd web && npx vercel deploy --prod --build-env VITE_API_URL=https://api.truemed.finessedev.space/api` (web).
 
+## Sat Oct 31 — NAFDAC registry layer
+- NAFDAC has no developer API (findings + sources in `NAFDAC_INTEGRATION.md`).
+- `backend/src/registry/` routes registration questions: DEMO-* → simulated NAFDAC sandbox; hand-copied Greenbook seed; real NAFDAC API when `NAFDAC_API_URL` is set; else the cached single Greenbook lookup. Only an explicit `not_registered` can fail `REG_NOT_FOUND`.
+- Public sandbox at `/sandbox/nafdac/v1` (DemoQuin only, read-only from outside); Gate 1 DemoQuin receipts post custody events to it.
+- New sample pack "Unregistered number" (DEMO-0099) → confirm step → High risk via the sandbox.
+
 ## Blocked on the founder
 - `MODEL_API_KEY` → run Phase 0 spikes (Muse Spark, SAM image/box/video, Voice English + Pidgin).
 - MongoDB Atlas URI (allowlist `75.119.132.248`).

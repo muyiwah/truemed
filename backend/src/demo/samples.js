@@ -8,6 +8,9 @@
  *
  * Sample scans never write to the ledger (see scan.js), so one judge's test
  * can't change the next judge's result.
+ *
+ * The unregistered sample prints DEMO-0099, which the simulated NAFDAC sandbox
+ * answers `not_registered` for (see sandbox/nafdac.js).
  */
 import sharp from 'sharp';
 import bwipjs from 'bwip-js';
@@ -17,6 +20,7 @@ export const SAMPLES = [
   { id: 'genuine', title: 'Genuine pack', subtitle: 'Bought at Ikeja Care Pharmacy (demo)', serial: 'DQ000001', codeExpiry: '280500', printedExpiry: '05/2028', mfg: '05/2026', tone: 'ok', suggest: { shop: 'Ikeja Care Pharmacy (demo)' } },
   { id: 'tampered', title: 'Relabeled expiry', subtitle: 'Date sticker over the original print', serial: 'DQ000003', codeExpiry: '250500', printedExpiry: '05/2028', mfg: '05/2026', tampered: true, tone: 'bad' },
   { id: 'never-issued', title: 'Container fake', subtitle: 'Serial the maker never issued', serial: 'DQ999999', codeExpiry: '280500', printedExpiry: '05/2028', mfg: '05/2026', tone: 'bad' },
+  { id: 'unregistered', title: 'Unregistered number', subtitle: 'Checked against the NAFDAC sandbox (simulated)', serial: 'DQ000004', regNo: 'DEMO-0099', codeExpiry: '280500', printedExpiry: '05/2028', mfg: '05/2026', tone: 'bad' },
   { id: 'wrong-shop', title: 'Diverted pack', subtitle: 'Registered to a different shop', serial: 'DQ000002', codeExpiry: '280500', printedExpiry: '05/2028', mfg: '05/2026', tone: 'warn', suggest: { shop: 'Yaba Family Pharmacy (demo)' } },
 ];
 
@@ -54,7 +58,7 @@ export async function renderSample(sample) {
     <text x="760" y="215" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="600" fill="#d8f1f7">Artemether / Lumefantrine</text>
     <text x="760" y="258" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#fff">20/120mg · 24 tablets</text>
     <text x="190" y="370" font-family="Helvetica, Arial, sans-serif" font-size="30" fill="#24323a">Manufactured by DemoQuin Pharma (fictional)</text>
-    <text x="190" y="418" font-family="Helvetica, Arial, sans-serif" font-size="32" font-weight="700" fill="#24323a">NAFDAC Reg. No: DEMO-0001</text>
+    <text x="190" y="418" font-family="Helvetica, Arial, sans-serif" font-size="32" font-weight="700" fill="#24323a">NAFDAC Reg. No: ${sample.regNo ?? 'DEMO-0001'}</text>
     <rect x="190" y="460" width="560" height="64" rx="10" fill="#B00020"/>
     <text x="470" y="503" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="800" fill="#fff" text-anchor="middle">DEMO — NOT A REAL PRODUCT</text>
     <text x="842" y="410" font-family="Courier New, monospace" font-size="30" font-weight="700" fill="#1b1b1b">BATCH: ${DEMO_BATCH}</text>

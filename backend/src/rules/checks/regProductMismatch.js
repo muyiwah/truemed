@@ -1,4 +1,4 @@
-import { result, val, isText, nameSimilarity, normStrength } from '../util.js';
+import { result, val, isText, nameSimilarity, normStrength, normRegNo } from '../util.js';
 
 /** REG_PRODUCT_MISMATCH — the reg no. belongs to a different product or strength. */
 export default function regProductMismatch(ctx) {
@@ -9,6 +9,11 @@ export default function regProductMismatch(ctx) {
   const generic = val(ctx, 'genericName');
   const strength = val(ctx, 'strength');
   if (!brand && !generic) return result(id, 'hard', 'skipped', 'The product name could not be read.');
+  // Found by barcode, but the pack prints another number: REG_NOT_FOUND judges that number.
+  const regNo = val(ctx, 'regNo');
+  if (regNo && normRegNo(regNo) !== normRegNo(p.nafdacRegNo)) {
+    return result(id, 'hard', 'skipped', `The pack's NAFDAC number ${regNo} is not the one on file for ${p.brandName}; it is checked against the registry instead.`);
+  }
 
   const nameScore = Math.max(
     brand ? nameSimilarity(brand, p.brandName) : 0,

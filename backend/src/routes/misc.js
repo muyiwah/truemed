@@ -8,6 +8,7 @@ import { getSession } from '../services/scan.js';
 import { reconcileShop } from '../services/ledger.js';
 import { asyncH, progress } from './middleware.js';
 import { log } from '../lib/log.js';
+import { registryStatus } from '../registry/index.js';
 
 const r = Router();
 
@@ -23,6 +24,7 @@ r.get('/health', asyncH(async (_req, res) => {
     meta: metaEnabled ? 'configured' : 'missing_key',
     models: { spark: config.SPARK_MODEL, sam: config.SAM_MODEL, voice: config.VOICE_MODEL },
     storage: imagekitEnabled ? 'configured' : 'missing_keys',
+    registry: registryStatus(),
     data: { products, alerts, shops },
     today: { calls: usage?.calls ?? 0, costUsd: Number((usage?.costUsd ?? 0).toFixed(4)), cap: config.DAILY_SPEND_CAP_USD },
   });

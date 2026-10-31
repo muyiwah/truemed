@@ -4,7 +4,7 @@
  */
 import { Product, Alert, Pack, Shop, IssuedSerial, ScanEvent, Notification } from '../db/models/index.js';
 import { normRegNo, normBatch } from '../rules/util.js';
-import { lookupRegNo } from './greenbook.js';
+import { checkRegistration, reportReceived } from '../registry/index.js';
 import { viewUrl } from './storage.js';
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -40,7 +40,7 @@ export async function buildContext(s) {
     serial ? Pack.findOne({ serial }).lean() : null,
   ]);
 
-  const regLookup = !product && regNo ? await lookupRegNo(regNo) : { status: 'not_attempted' };
+  const regLookup = await checkRegistration({ regNo, product });
   const packShop = pack?.shopId ? await Shop.findById(pack.shopId).lean() : null;
 
   // Issuer participation: DemoQuin (and later, any brand sharing its serial list).
@@ -87,11 +87,13 @@ export async function buildContext(s) {
 /** Gate 1 accepted: log the pack to this shop. */
 export async function logReceived({ serial, gtin, batch, expiry, regNo, productId, shopId, source }) {
   if (!serial) return null;
-  return Pack.findOneAndUpdate(
+  const pack = await Pack.findOneAndUpdate(
     { serial },
     { $setOnInsert: { serial, gtin, batch, expiry, regNo, productId, shopId, status: 'in_stock', source: source.source, supplierName: source.supplierName, marketStall: source.marketStall, receivedAt: new Date() } },
     { upsert: true, new: true },
   ).lean();
+  reportReceived({ gtin, serial, batch, expiry, shopId, source });
+  return pack;
 }
 
 /** Gate 2 final: the first verifier claims the pack. */

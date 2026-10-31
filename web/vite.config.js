@@ -8,6 +8,9 @@ export default defineConfig({
     host: true,
     // Phone testing over an HTTPS tunnel (camera + mic need HTTPS).
     allowedHosts: ['.ngrok-free.app', '.ngrok.app', '.ngrok.io'],
-    proxy: { '/api': { target: 'http://localhost:4080', changeOrigin: true } },
+    proxy: {
+      '/api': { target: 'http://localhost:4080', changeOrigin: true },
+      '/sandbox': { target: 'http://localhost:4080', changeOrigin: true },
+    },
   },
 });

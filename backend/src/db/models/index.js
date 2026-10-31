@@ -171,6 +171,22 @@ const regLookupSchema = new Schema({
   checkedAt: { type: Date, default: Date.now, expires: 60 * 60 * 24 },
 });
 
+/**
+ * Custody events recorded by the simulated NAFDAC sandbox (DemoQuin only).
+ * Shaped like a traceability event: what happened, to which unit, by whom, when.
+ */
+const sandboxEventSchema = new Schema({
+  eventType: { type: String, enum: ['receive', 'dispense', 'return', 'destroy'], required: true },
+  gtin: { type: String, required: true },
+  serial: { type: String, required: true },
+  batch: String,
+  expiry: String,
+  actor: { name: String, licenceNo: String, city: String },
+  source: String,
+  eventTime: { type: Date, default: Date.now },
+}, { timestamps: { createdAt: true, updatedAt: false } });
+sandboxEventSchema.index({ gtin: 1, serial: 1, eventTime: -1 });
+
 export const Product = model('Product', productSchema);
 export const Alert = model('Alert', alertSchema);
 export const Shop = model('Shop', shopSchema);
@@ -183,3 +199,4 @@ export const Notification = model('Notification', notificationSchema);
 export const Device = model('Device', deviceSchema);
 export const Usage = model('Usage', usageSchema);
 export const RegLookup = model('RegLookup', regLookupSchema);
+export const SandboxEvent = model('SandboxEvent', sandboxEventSchema);
