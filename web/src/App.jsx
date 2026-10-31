@@ -12,6 +12,7 @@ const Notifications = lazy(() => import('./pages/Notifications.jsx'));
 const Admin = lazy(() => import('./pages/Admin.jsx'));
 const How = lazy(() => import('./pages/How.jsx'));
 const Labels = lazy(() => import('./pages/Labels.jsx'));
+const Insights = lazy(() => import('./pages/Insights.jsx'));
 
 const Fallback = () => <div className="grid min-h-dvh place-items-center text-ink-3">Loading…</div>;
 
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/how" element={<How />} />
           <Route path="/labels" element={<Labels />} />
+          <Route path="/insights" element={<Insights />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>

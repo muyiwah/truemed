@@ -10,6 +10,7 @@ import { device } from './routes/middleware.js';
 import scanRoutes from './routes/scan.js';
 import miscRoutes from './routes/misc.js';
 import adminRoutes from './routes/admin.js';
+import insightsRoutes from './routes/insights.js';
 
 const app = express();
 app.set('trust proxy', 1); // behind nginx
@@ -29,6 +30,7 @@ app.use('/api', device);
 app.use('/api', miscRoutes);
 app.use('/api', scanRoutes);
 app.use('/api', adminRoutes);
+app.use('/api', insightsRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 // eslint-disable-next-line no-unused-vars

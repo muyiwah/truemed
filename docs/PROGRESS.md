@@ -20,6 +20,11 @@
 - SMA Gold: the cited article gives no alert number; batch `22939510A1206`.
 - Dostinex 07/2026: the articles don't map expiry dates to batches, so expiries are left null.
 
+## Sat Oct 31 — done
+- **Network insights page** (`/insights`, public, totals only): AI accuracy from `eval/results.json`, what the network caught (live ledger), Meta calls/spend/timings per model. Each panel is labelled Live / Evaluation / Sample data; sample data (`backend/src/insights/placeholder.js`) shows until 20+ real scans and an eval run exist.
+- Confirm screen now always shown for real photos (rule 2); front-photo preview bug fixed.
+- Real scans saved locally to `backend/data/field/` (git-ignored) while ImageKit is unset, for the eval set.
+
 ## Blocked on the founder
 - `MODEL_API_KEY` → run Phase 0 spikes (Muse Spark, SAM image/box/video, Voice English + Pidgin).
 - MongoDB Atlas URI (allowlist `75.119.132.248`).

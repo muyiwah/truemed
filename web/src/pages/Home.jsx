@@ -95,7 +95,10 @@ export default function Home() {
             <Database className="mt-0.5 size-5 shrink-0 text-brand" />
             <p className="text-[15px] text-ink-2"><span className="font-semibold text-ink">The ledger knows where every pack should be. Meta AI checks whether it really is.</span> Hard facts — registration, alerts, expiry, the code on the pack, which shop received the serial — decide a High-risk verdict. AI on its own can only raise Caution.</p>
           </div>
-          <Link to="/how" className="mt-4 inline-flex items-center gap-1 font-semibold text-brand hover:underline">{t('how')} <ArrowRight className="size-4" /></Link>
+          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+            <Link to="/how" className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">{t('how')} <ArrowRight className="size-4" /></Link>
+            <Link to="/insights" className="inline-flex items-center gap-1 font-semibold text-brand hover:underline">Network insights <ArrowRight className="size-4" /></Link>
+          </div>
         </section>
 
         <footer className="mt-16 border-t border-line pt-6 text-sm text-ink-3">
