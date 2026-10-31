@@ -25,6 +25,8 @@
 - Confirm screen now always shown for real photos (rule 2); front-photo preview bug fixed.
 - Real scans saved locally to `backend/data/field/` (git-ignored) while ImageKit is unset, for the eval set.
 
+- **Deployed (Oct 31):** API https://api.truemed.finessedev.space (VPS, PM2 `truemed-api`, port 4080, Nginx + Let's Encrypt; DB = `truemed` database/user in the VPS `mongodb` Docker container; ImageKit folder `/truemed`). Web https://truemed.finessedev.space (Vercel project `truemed`, deployed with the Vercel CLI, `VITE_API_URL` set at build). Redeploy: `infra/deploy.sh` (API), `cd web && npx vercel deploy --prod --build-env VITE_API_URL=https://api.truemed.finessedev.space/api` (web).
+
 ## Blocked on the founder
 - `MODEL_API_KEY` → run Phase 0 spikes (Muse Spark, SAM image/box/video, Voice English + Pidgin).
 - MongoDB Atlas URI (allowlist `75.119.132.248`).
