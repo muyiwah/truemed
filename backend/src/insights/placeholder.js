@@ -28,4 +28,4 @@ export const SAMPLE_NETWORK = {
   alertsApproved: 5,
 };
 
-export const SAMPLE_TIMINGS = { quality: 480, extraction: 6100, samBarcode0: 3300, tamper: 4200, total: 9800 };
+export const SAMPLE_TIMINGS = { quality: 200, samBarcode0: 2300, extraction: 5000, tamper: 8200, total: 8200 };

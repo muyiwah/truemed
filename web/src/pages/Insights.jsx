@@ -27,8 +27,8 @@ const CHECK_LABEL = {
 };
 const FIELD_LABEL = { brandName: 'Product name', regNo: 'NAFDAC number', batch: 'Batch', expiry: 'Expiry date', manufactureDate: 'Manufacture date' };
 const STEP_LABEL = {
-  quality: ['Photo quality check', null], extraction: ['Reading the label', 'Muse Spark'], samBarcode0: ['Finding the barcode', 'SAM 3.1'],
-  tamper: ['Tamper check on the date block', 'Muse Spark'], total: ['Whole scan', null],
+  quality: ['Photo quality checked', null], samBarcode0: ['Barcode found', 'SAM 3.1'], extraction: ['Label read', 'Muse Spark'],
+  tamper: ['Date block checked for tampering', 'Muse Spark'], total: ['Verdict ready', null],
 };
 const MODEL_NAME = (id) => (id.startsWith('muse-spark') ? 'Muse Spark' : id.startsWith('sam') ? 'SAM 3.1' : id.startsWith('muse-voice') ? 'Voice Transcribe' : id);
 
@@ -178,9 +178,9 @@ function MetaAtWork({ m }) {
             <Bars rows={m.byModel.map((x) => ({ key: x.model, label: MODEL_NAME(x.model), value: x.calls, display: num(x.calls), note: `$${x.costUsd.toFixed(2)}` }))} max={callMax} />
           ) : <Empty>No calls yet today.</Empty>}
         </Panel>
-        <Panel title="Where the time goes" tag={<SourceBadge source={t.source} small />}>
+        <Panel title="Photo to verdict" tag={<SourceBadge source={t.source} small />}>
           <Bars rows={steps.map((k) => ({ key: k, label: STEP_LABEL[k][0], value: t[k], display: secs(t[k]), note: STEP_LABEL[k][1] }))} max={stepMax} />
-          <p className="mt-3 text-xs text-lab-dim">Median of {t.source === 'live' ? `${num(t.n)} real scans` : 'sample scans'}. Steps overlap: SAM and the tamper check run alongside reading.</p>
+          <p className="mt-3 text-xs text-lab-dim">Seconds from the photo arriving until each step is done (median of {t.source === 'live' ? `${num(t.n)} real scans` : 'sample scans'}). SAM runs alongside Muse Spark’s reading.</p>
         </Panel>
       </div>
     </Section>

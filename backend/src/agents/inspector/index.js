@@ -13,7 +13,7 @@
  * whole result.
  */
 import { sparkJson, samImage, imagePart, textPart, toDataUrl } from '../../services/meta.js';
-import { normalizeImage, qualityGate, crop, normBoxToPixels, maskPath } from '../../services/media.js';
+import { normalizeImage, qualityGate, crop, normBoxToPixels, maskPath, downscale } from '../../services/media.js';
 import { readPackBarcode } from '../../services/barcode.js';
 import { EXTRACTION, TAMPER, ARTWORK } from './prompts.js';
 import { extractionSchema, extractionZod, tamperSchema, tamperZod, artworkSchema, artworkZod } from './schemas.js';
@@ -53,6 +53,9 @@ function samRegions(sam, image, extra) {
  * @param {Buffer[]} rawImages 1–2 photos
  * @param {{ lookupProduct?: (extracted) => Promise<object|null>, onStep?: (step:string, data?:object) => void }} opts
  */
+const SPARK_SIDE = 1280;
+const CONTEXT_SIDE = 768;
+
 export async function inspect(rawImages, { lookupProduct, onStep = () => {} } = {}) {
   const t0 = Date.now();
   const timings = {};
@@ -66,14 +69,21 @@ export async function inspect(rawImages, { lookupProduct, onStep = () => {} } = 
   }
   onStep('quality', { ok: true });
 
+  // SAM gets the 1600 px image (box prompts must match its exact size).
+  // Muse Spark reads a 1280 px copy; the date crop is cut from the 1600 px one
+  // so small batch/expiry print stays sharp. Context for the tamper check is smaller still.
   const dataUrls = images.map((i) => toDataUrl(i.buffer));
+  const [sparkUrls, contextUrls] = await Promise.all([
+    Promise.all(images.map((i) => downscale(i.buffer, SPARK_SIDE).then((b) => toDataUrl(b)))),
+    Promise.all(images.map((i) => downscale(i.buffer, CONTEXT_SIDE).then((b) => toDataUrl(b)))),
+  ]);
 
   // Wave 1 — all independent.
   onStep('reading');
   const extractionP = settle('extraction', sparkJson({
     label: 'extraction',
     instructions: EXTRACTION,
-    content: [textPart(`Read ${images.length === 2 ? 'these two photos (front and back) of one pack' : 'this pack photo'}.`), ...dataUrls.map(imagePart)],
+    content: [textPart(`Read ${images.length === 2 ? 'these two photos (front and back) of one pack' : 'this pack photo'}.`), ...sparkUrls.map(imagePart)],
     schema: extractionSchema,
     zod: extractionZod,
     effort: 'low', // 12.4 s → ~5 s with identical fields on the spike set (Oct 30)
@@ -122,7 +132,7 @@ export async function inspect(rawImages, { lookupProduct, onStep = () => {} } = 
       settle('tamper', sparkJson({
         label: 'tamper',
         instructions: TAMPER,
-        content: [textPart('Crop of the batch/expiry area:'), imagePart(toDataUrl(cropBuf)), textPart('Full pack for context:'), imagePart(dataUrls[dateBox.image])],
+        content: [textPart('Crop of the batch/expiry area:'), imagePart(toDataUrl(cropBuf)), textPart('Full pack for context:'), imagePart(contextUrls[dateBox.image])],
         schema: tamperSchema,
         zod: tamperZod,
         effort: 'low',
@@ -140,7 +150,7 @@ export async function inspect(rawImages, { lookupProduct, onStep = () => {} } = 
     const r = await settle('artwork', sparkJson({
       label: 'artwork',
       instructions: ARTWORK,
-      content: [textPart('Genuine reference:'), ...refs.slice(0, 3).map(imagePart), textPart('Pack being checked:'), imagePart(dataUrls[0])],
+      content: [textPart('Genuine reference:'), ...refs.slice(0, 3).map(imagePart), textPart('Pack being checked:'), imagePart(sparkUrls[0])],
       schema: artworkSchema,
       zod: artworkZod,
       effort: 'low',

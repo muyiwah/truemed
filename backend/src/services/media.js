@@ -27,6 +27,11 @@ export async function normalizeImage(input) {
   return { buffer: out.data, width: out.info.width, height: out.info.height };
 }
 
+/** A smaller JPEG copy for Muse Spark (fewer image tokens, faster). Crops still come from the sharper original. */
+export async function downscale(buffer, maxSide) {
+  return sharp(buffer).resize({ width: maxSide, height: maxSide, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 85, mozjpeg: true }).toBuffer();
+}
+
 /**
  * Fast local quality gate before spending on AI.
  * @returns {{ ok: boolean, issues: string[], metrics: object }}
