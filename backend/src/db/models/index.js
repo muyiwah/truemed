@@ -190,6 +190,21 @@ const sandboxEventSchema = new Schema({
 }, { timestamps: { createdAt: true, updatedAt: false } });
 sandboxEventSchema.index({ gtin: 1, serial: 1, eventTime: -1 });
 
+/**
+ * Videos in the admin Videos section: footage the founder uploads for the demo
+ * film (browser → ImageKit directly), and carton scan videos saved by Gate 1.
+ */
+const videoSchema = new Schema({
+  kind: { type: String, enum: ['footage', 'carton'], required: true, index: true },
+  title: String,
+  media: { type: media, required: true },
+  size: Number,
+  durationSec: Number,
+  shopId: { type: Schema.Types.ObjectId, ref: 'Shop' },
+  summary: { total: Number, accepted: Number, review: Number, rejected: Number },
+  annotated: media,
+}, { timestamps: true });
+
 export const Product = model('Product', productSchema);
 export const Alert = model('Alert', alertSchema);
 export const Shop = model('Shop', shopSchema);
@@ -203,3 +218,4 @@ export const Device = model('Device', deviceSchema);
 export const Usage = model('Usage', usageSchema);
 export const RegLookup = model('RegLookup', regLookupSchema);
 export const SandboxEvent = model('SandboxEvent', sandboxEventSchema);
+export const Video = model('Video', videoSchema);

@@ -6,6 +6,7 @@ import { ArrowLeft, Radar, CheckCircle2, RotateCcw, Printer, Activity, ExternalL
 import clsx from 'clsx';
 import { TopBar, Page, Button, ErrorNote, ModelTag, Card } from '../components/ui.jsx';
 import { get, post, safeGet, safeSet } from '../lib/api.js';
+import Videos from '../components/Videos.jsx';
 
 /** Hidden admin: Sentinel (ingest → review → approve → warn shops) and DemoQuin controls. */
 export default function Admin() {
@@ -26,6 +27,7 @@ export default function Admin() {
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_1fr]">
             <Sentinel />
             <div className="space-y-6"><Health /><Demo /></div>
+            <div className="lg:col-span-2"><Videos /></div>
           </div>
         )}
       </div>

@@ -45,3 +45,8 @@
 1. Spikes with the key; record results in `API_NOTES.md`; tune prompts on real photos.
 2. Deploy: `infra/nginx-api.truemed.conf`, certbot, `infra/deploy.sh`; Vercel for `web/` with `VITE_API_URL`.
 3. Eval harness (`npm run eval`) once real photos exist.
+
+## Tue Nov 3 — Admin Videos section
+- Control room (admin PIN) now has **Videos**: a demo-footage locker and saved carton scans.
+- Footage uploads go browser → ImageKit directly (signed, single-use, 10 min), private, ≤ 100 MB per clip (ImageKit free plan video limit), so the VPS and its 30 MB nginx limit are never in the path. Watch, download, rename, delete.
+- Carton scans now keep the H.264 copy SAM tracked, with the accept/review/reject summary and the annotated keyframe as poster. Saved in the background; never fails a scan.

@@ -47,4 +47,23 @@ export function viewUrl(m, { expireSeconds = 3600, transformation } = {}) {
   return c.url({ path: m.filePath, signed: Boolean(m.isPrivate), expireSeconds: m.isPrivate ? expireSeconds : undefined, transformation });
 }
 
+/**
+ * One-shot permission for the browser to upload straight to ImageKit, so large
+ * videos never pass through the VPS. The private key stays here; the signature
+ * is single-use and expires in ten minutes.
+ */
+export function signUpload() {
+  const c = client();
+  if (!c) return null;
+  const { token, expire, signature } = c.getAuthenticationParameters(undefined, Math.floor(Date.now() / 1000) + 600);
+  return { token, expire, signature, publicKey: config.IMAGEKIT_PUBLIC_KEY };
+}
+
+/** Delete a stored file. Never throws. */
+export async function removeMedia(m) {
+  const c = client();
+  if (!c || !m?.fileId) return;
+  try { await c.deleteFile(m.fileId); } catch (err) { log.warn({ err: err?.message }, 'imagekit delete failed'); }
+}
+
 export const storageEnabled = () => imagekitEnabled;

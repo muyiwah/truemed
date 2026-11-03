@@ -15,7 +15,8 @@ import { prepareVideo, renderOverlay } from './media.js';
 import { readPackBarcode } from './barcode.js';
 import { evaluate, resolveFields } from '../rules/index.js';
 import { buildContext, logReceived, notifyClone } from './ledger.js';
-import { ScanEvent, Shop } from '../db/models/index.js';
+import { ScanEvent, Shop, Video } from '../db/models/index.js';
+import { log } from '../lib/log.js';
 import { store } from './storage.js';
 import { frameIndexOf } from '@meta-sam/parser';
 
@@ -125,6 +126,7 @@ export async function receiveCarton({ video, shopId, source, deviceId, onStep = 
   const stored = await store(annotated, { folder: 'carton', name: `carton-${Date.now()}.jpg`, kind: 'annotated' });
 
   const summary = { total: packs.length, accepted: packs.filter((p) => p.decision === 'accepted').length, review: packs.filter((p) => p.decision === 'review').length, rejected: packs.filter((p) => p.decision === 'rejected').length };
+  saveCartonVideo({ mp4: v.mp4, duration: v.duration, shopId, summary, annotated: stored });
   onStep({ step: 'done', text: 'Done' });
   return { packs, summary, annotatedImage: `data:image/jpeg;base64,${annotated.toString('base64')}`, annotatedStored: stored, video: { width: v.width, height: v.height, duration: v.duration }, cost: sam.cost };
 }
@@ -149,4 +151,14 @@ async function frameAt(mp4, seconds) {
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+}
+
+/** Keep the carton video for the admin Videos section. In the background; never fails the scan. */
+function saveCartonVideo({ mp4, duration, shopId, summary, annotated }) {
+  (async () => {
+    const media = await store(mp4, { folder: 'carton-video', name: `carton-${Date.now()}.mp4`, kind: 'video' });
+    if (!media) return;
+    const shop = shopId ? await Shop.findById(shopId).select('name').lean() : null;
+    await Video.create({ kind: 'carton', title: `Carton at ${shop?.name ?? 'unknown shop'}`, media, size: mp4.length, durationSec: duration, shopId, summary, annotated });
+  })().catch((err) => log.warn({ err: err.message }, 'carton video save failed'));
 }

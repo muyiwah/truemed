@@ -38,6 +38,8 @@ async function parse(res) {
 
 export const get = (path) => fetch(BASE + path, { headers: headers() }).then(parse);
 export const post = (path, json) => fetch(BASE + path, { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify(json ?? {}) }).then(parse);
+export const patch = (path, json) => fetch(BASE + path, { method: 'PATCH', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify(json ?? {}) }).then(parse);
+export const del = (path) => fetch(BASE + path, { method: 'DELETE', headers: headers() }).then(parse);
 export const postForm = (path, form) => fetch(BASE + path, { method: 'POST', headers: headers(), body: form }).then(parse);
 
 /**

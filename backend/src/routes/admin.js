@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { Alert, IssuedSerial, ScanSession } from '../db/models/index.js';
-import { viewUrl } from '../services/storage.js';
+import { Alert, IssuedSerial, ScanSession, Video } from '../db/models/index.js';
+import { viewUrl, signUpload, removeMedia } from '../services/storage.js';
+import { config } from '../config.js';
 import { ingest, approve, matchPacks } from '../agents/sentinel/index.js';
 import { issue, dispatch, label, resetDemo, SCENARIOS, DEMO_GTIN } from '../demo/demoquin.js';
 import { requireAdmin, asyncH } from './middleware.js';
@@ -35,6 +36,41 @@ r.get('/field-scans', requireAdmin, asyncH(async (req, res) => {
     .select('gate role city language images extracted barcode visual quality userValues confirmed answer result timings createdAt finalizedAt')
     .sort({ createdAt: 1 }).limit(1000).lean();
   res.json(sessions.map(({ images, ...s }) => ({ ...s, photos: (images ?? []).map((m) => viewUrl(m, { expireSeconds: 900 })).filter(Boolean) })));
+}));
+
+// --- Videos: demo footage (uploaded from the browser straight to ImageKit) + carton scans ---
+const FOOTAGE_FOLDER = `${config.IMAGEKIT_FOLDER.replace(/\/+$/, '')}/footage`;
+r.get('/videos/upload-auth', requireAdmin, (_req, res) => {
+  const auth = signUpload();
+  if (!auth) return res.status(503).json({ error: 'Video storage is not configured on the server.' });
+  res.json({ ...auth, folder: FOOTAGE_FOLDER });
+});
+r.post('/videos', requireAdmin, asyncH(async (req, res) => {
+  const b = z.object({
+    fileId: z.string().min(1).max(100), filePath: z.string().min(1).max(500), url: z.string().url(),
+    title: z.string().max(200).optional(), size: z.number().nonnegative().optional(), durationSec: z.number().nonnegative().optional(),
+  }).parse(req.body);
+  if (!b.filePath.startsWith(`${FOOTAGE_FOLDER}/`)) return res.status(400).json({ error: 'Not a footage upload.' });
+  const v = await Video.create({ kind: 'footage', title: b.title, size: b.size, durationSec: b.durationSec, media: { fileId: b.fileId, filePath: b.filePath, url: b.url, isPrivate: true, kind: 'video' } });
+  res.json({ id: v._id });
+}));
+r.get('/videos', requireAdmin, asyncH(async (_req, res) => {
+  const list = await Video.find().sort({ createdAt: -1 }).limit(300).lean();
+  res.json(list.map(({ media, annotated, ...v }) => ({
+    ...v,
+    url: viewUrl(media, { expireSeconds: 6 * 3600 }),
+    poster: annotated ? viewUrl(annotated, { expireSeconds: 6 * 3600 }) : null,
+  })));
+}));
+r.patch('/videos/:id', requireAdmin, asyncH(async (req, res) => {
+  const { title } = z.object({ title: z.string().max(200) }).parse(req.body);
+  await Video.updateOne({ _id: req.params.id }, { $set: { title } });
+  res.json({ ok: true });
+}));
+r.delete('/videos/:id', requireAdmin, asyncH(async (req, res) => {
+  const v = await Video.findByIdAndDelete(req.params.id).lean();
+  if (v) { await removeMedia(v.media); if (v.annotated) await removeMedia(v.annotated); }
+  res.json({ ok: Boolean(v) });
 }));
 
 // --- DemoQuin ---
