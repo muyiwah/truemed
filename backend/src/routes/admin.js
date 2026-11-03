@@ -39,6 +39,8 @@ r.get('/field-scans', requireAdmin, asyncH(async (req, res) => {
 }));
 
 // --- Videos: demo footage (uploaded from the browser straight to ImageKit) + carton scans ---
+// Videos can't be deleted for 72 hours (needed for editing the demo film), and their links last as long.
+const KEEP_SECONDS = 72 * 3600;
 const FOOTAGE_FOLDER = `${config.IMAGEKIT_FOLDER.replace(/\/+$/, '')}/footage`;
 r.get('/videos/upload-auth', requireAdmin, (_req, res) => {
   const auth = signUpload();
@@ -58,8 +60,9 @@ r.get('/videos', requireAdmin, asyncH(async (_req, res) => {
   const list = await Video.find().sort({ createdAt: -1 }).limit(300).lean();
   res.json(list.map(({ media, annotated, ...v }) => ({
     ...v,
-    url: viewUrl(media, { expireSeconds: 6 * 3600 }),
-    poster: annotated ? viewUrl(annotated, { expireSeconds: 6 * 3600 }) : null,
+    url: viewUrl(media, { expireSeconds: KEEP_SECONDS }),
+    poster: annotated ? viewUrl(annotated, { expireSeconds: KEEP_SECONDS }) : null,
+    deletableAt: new Date(new Date(v.createdAt).getTime() + KEEP_SECONDS * 1000),
   })));
 }));
 r.patch('/videos/:id', requireAdmin, asyncH(async (req, res) => {
@@ -68,6 +71,10 @@ r.patch('/videos/:id', requireAdmin, asyncH(async (req, res) => {
   res.json({ ok: true });
 }));
 r.delete('/videos/:id', requireAdmin, asyncH(async (req, res) => {
+  const found = await Video.findById(req.params.id).select('createdAt').lean();
+  if (found && Date.now() - new Date(found.createdAt).getTime() < KEEP_SECONDS * 1000) {
+    return res.status(409).json({ error: 'Videos are kept for 72 hours after upload. Try again later.' });
+  }
   const v = await Video.findByIdAndDelete(req.params.id).lean();
   if (v) { await removeMedia(v.media); if (v.annotated) await removeMedia(v.annotated); }
   res.json({ ok: Boolean(v) });

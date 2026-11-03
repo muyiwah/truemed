@@ -112,7 +112,7 @@ export default function Videos() {
 
       {tab === 'footage' && (
         <div className="mt-4">
-          <p className="text-sm text-ink-3">Clips you filmed for the demo video. Upload from your phone, watch or download on the laptop. Private: links expire after 6 hours. Up to 100 MB per clip.</p>
+          <p className="text-sm text-ink-3">Clips you filmed for the demo video. Upload from your phone, watch or download on the laptop. Private. Kept at least 72 hours; links last 72 hours. Up to 100 MB per clip.</p>
           <input ref={input} type="file" accept="video/*" multiple className="hidden" onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
           <Button size="md" className="mt-3" onClick={() => input.current?.click()}><Upload className="size-4" />Upload clips</Button>
         </div>
@@ -146,7 +146,9 @@ export default function Videos() {
                 <div className="mt-2 flex gap-3 text-sm">
                   {v.url && <a href={v.url} download target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand"><Download className="size-4" />Download</a>}
                   {v.kind === 'footage' && <button onClick={() => rename(v)} className="inline-flex items-center gap-1 text-ink-2"><Pencil className="size-4" />Rename</button>}
-                  <button onClick={() => remove(v)} className="ml-auto inline-flex items-center gap-1 text-bad"><Trash2 className="size-4" />Delete</button>
+                  {new Date(v.deletableAt) > new Date()
+                    ? <span className="ml-auto text-xs text-ink-3">Kept until {when(v.deletableAt)}</span>
+                    : <button onClick={() => remove(v)} className="ml-auto inline-flex items-center gap-1 text-bad"><Trash2 className="size-4" />Delete</button>}
                 </div>
               </div>
             </li>
