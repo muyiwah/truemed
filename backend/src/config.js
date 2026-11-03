@@ -35,7 +35,9 @@ const schema = z.object({
   PUBLIC_API_URL: z.string().url().optional(),
 });
 
-const parsed = schema.safeParse(process.env);
+// A blank line in .env (KEY=) means "not set", so optional URLs and defaults still apply.
+const env = Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== ''));
+const parsed = schema.safeParse(env);
 if (!parsed.success) {
   console.error('Invalid environment:', parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '));
   process.exit(1);

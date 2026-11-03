@@ -16,7 +16,7 @@ async function syncSessionTtl() {
     await mongoose.connection.db.command({ collMod: 'scansessions', index: { keyPattern: { createdAt: 1 }, expireAfterSeconds: SESSION_TTL_SECONDS } });
   } catch (err) {
     // Fresh database: no collection or index yet; Mongoose creates it with the new TTL.
-    if (!/ns does not exist|index not found|NamespaceNotFound|IndexNotFound/i.test(err.message)) log.warn({ err: err.message }, 'scan session TTL update failed');
+    if (!/ns does not exist|index not found|cannot find index|NamespaceNotFound|IndexNotFound/i.test(err.message)) log.warn({ err: err.message }, 'scan session TTL update failed');
   }
 }
 
