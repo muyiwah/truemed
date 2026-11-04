@@ -24,7 +24,7 @@ Fake and substandard medicines kill up to **500,000 people a year in sub-Saharan
 3. Tap **Relabeled expiry** → confirm the values → *At a market* → **High risk**: the 2D code says expiry 2025-05, the box says 2028-05. Switch the explanation to Naijá / Yorùbá / Hausa. Tap **Investigate** to watch the Investigator agent build a case file.
 4. Pharmacy flow: on the start screen choose **Pharmacist or Chemist**, any demo shop, PIN **2468** → **Receive stock**. Print labels from **Print demo labels** to scan DemoQuin packs, including a cloned serial that is rejected at the door.
 
-Sample packs never write to the ledger, so every judge sees the same result.
+Sample packs never write to the ledger, so every judge sees the same result. The hosted `/admin` page (Sentinel, demo reset) is PIN-locked because it can change shared demo data; run TrueMed locally to use it with your own `ADMIN_PIN`.
 
 ## Run it yourself
 
@@ -33,8 +33,10 @@ Requirements: **Node 20+**, **MongoDB** (local or Atlas), and **your own Meta Mo
 ```bash
 git clone https://github.com/muyiwah/truemed.git && cd truemed
 
-# 1. MongoDB (skip if you have one)
-docker run -d --name truemed-mongo -p 27017:27017 mongo:7
+# 1. MongoDB (skip if you have one). Any of these works:
+#    docker run -d --name truemed-mongo -p 27017:27017 mongo:7
+#    brew install mongodb-community && brew services start mongodb-community
+#    or a free MongoDB Atlas cluster: put its URI in MONGODB_URI
 
 # 2. Backend
 cd backend
@@ -84,6 +86,7 @@ AI reads and finds evidence; **hard facts decide**. Full detail in [docs/ARCHITE
 - **Registered products:** only entries with a source link are seeded (currently DemoQuin and SMA Gold); real Greenbook entries are added by hand, never scraped. NAFDAC publishes no API, so most real packs return **No record**. [docs/NAFDAC_INTEGRATION.md](docs/NAFDAC_INTEGRATION.md) explains the research, and the **simulated NAFDAC sandbox** (DemoQuin only, clearly labelled) that shows how a real integration plugs in by configuration.
 - **DemoQuin:** a fictional brand with a fictional manufacturer that shares its issued serials, so the full supply-chain checks can be demonstrated. Printed labels say *DEMO — NOT A REAL PRODUCT*.
 - **Privacy:** anonymous device IDs, location only with consent, private media behind short-lived signed URLs, no personal data in logs.
+- **People in the demo video:** the pharmacist and the buyer took part with consent. Faces and the pharmacy's name are kept out of frame on purpose, so no one can be identified.
 
 ## Limitations
 
