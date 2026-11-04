@@ -6,7 +6,7 @@ Snap a pack. Meta AI reads it, finds the evidence, checks hard facts against NAF
 Built for the Meta Global AI Developer Hackathon (Indie Developer track, *Build for Your World*).
 Everything in this repository was built during the event (first commit Oct 30, 2026).
 
-- **Demo video (3 min):** `TODO: add YouTube/Loom link`
+- **Demo video (2:46):** https://youtu.be/_kUFyiMH0c0
 - **Hosted demo (optional):** https://truemed.finessedev.space · API https://api.truemed.finessedev.space/api/health
 
 > TrueMed is a **screening tool, not medical advice and not a lab test**. It never gives dosing or treatment advice; it checks whether the *pack* is consistent with what is registered, issued and sold. It is a **working prototype on demo data**: it is not connected to NAFDAC's database (NAFDAC has no public API). DemoQuin and all demo shops are fictional.
