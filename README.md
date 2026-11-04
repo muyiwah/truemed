@@ -8,6 +8,15 @@ Everything in this repository was built during the event (first commit Oct 30, 2
 
 - **Demo video (2:46):** https://youtu.be/_kUFyiMH0c0
 - **Hosted demo (optional):** https://truemed.finessedev.space · API https://api.truemed.finessedev.space/api/health
+- **Admin / control room:** https://truemed.finessedev.space/admin (Sentinel, DemoQuin reset, demo videos)
+
+| Access | PIN or key |
+|---|---|
+| Pharmacist / licensed chemist sign-in (hosted and local) | **2468** |
+| `/admin` when you run TrueMed locally | whatever you set as `ADMIN_PIN` in `backend/.env` |
+| `/admin` on the hosted demo | private: it can change the shared demo data and holds field-test photos. Run locally to try it. |
+| Meta Model API | your own key, as `MODEL_API_KEY` in `backend/.env` (never committed) |
+| Buyers (Gate 2 home check) | no account, no PIN |
 
 > TrueMed is a **screening tool, not medical advice and not a lab test**. It never gives dosing or treatment advice; it checks whether the *pack* is consistent with what is registered, issued and sold. It is a **working prototype on demo data**: it is not connected to NAFDAC's database (NAFDAC has no public API). DemoQuin and all demo shops are fictional.
 
