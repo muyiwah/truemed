@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Radar, CheckCircle2, RotateCcw, Printer, Activity, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Radar, CheckCircle2, RotateCcw, Printer, Activity, ExternalLink, Lock } from 'lucide-react';
 import clsx from 'clsx';
 import { TopBar, Page, Button, ErrorNote, ModelTag, Card } from '../components/ui.jsx';
 import { get, post, safeGet, safeSet } from '../lib/api.js';
@@ -11,17 +11,35 @@ import Videos from '../components/Videos.jsx';
 /** Hidden admin: Sentinel (ingest → review → approve → warn shops) and DemoQuin controls. */
 export default function Admin() {
   const navigate = useNavigate();
-  const [pin, setPin] = useState(() => safeGet('tm.adminPin') ?? '');
-  const [unlocked, setUnlocked] = useState(Boolean(safeGet('tm.adminPin')));
+  const [pin, setPin] = useState('');
+  const [unlocked, setUnlocked] = useState(false);
+  const [checking, setChecking] = useState(Boolean(safeGet('tm.adminPin')));
+  const [pinError, setPinError] = useState(null);
+
+  // The server checks the PIN on every admin call; check it here too, so a wrong PIN never opens the room.
+  const verify = async (candidate) => {
+    safeSet('tm.adminPin', candidate);
+    try { await get('/videos'); setUnlocked(true); setPinError(null); }
+    catch (e) { safeSet('tm.adminPin', ''); setUnlocked(false); setPinError(e.status === 403 ? 'Wrong PIN.' : e.message); }
+    setChecking(false);
+  };
+  useEffect(() => { const saved = safeGet('tm.adminPin'); if (saved) verify(saved); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const lock = () => { safeSet('tm.adminPin', ''); setPin(''); setUnlocked(false); };
   return (
     <Page>
       <TopBar back={<button onClick={() => navigate('/')} className="grid size-9 place-items-center rounded-full hover:bg-black/5" aria-label="Back"><ArrowLeft className="size-5" /></button>} />
       <div className="mx-auto max-w-5xl px-4 py-6">
-        <h1 className="display text-4xl font-bold">Control room</h1>
-        {!unlocked ? (
-          <form className="mt-6 flex max-w-sm gap-2" onSubmit={(e) => { e.preventDefault(); safeSet('tm.adminPin', pin); setUnlocked(true); }}>
-            <input value={pin} onChange={(e) => setPin(e.target.value)} type="password" placeholder="Admin PIN" className="h-12 flex-1 rounded-xl border border-line bg-card px-3" />
-            <Button size="md" type="submit">Unlock</Button>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="display text-4xl font-bold">Control room</h1>
+          {unlocked && <Button size="sm" variant="secondary" onClick={lock}><Lock className="size-4" />Lock</Button>}
+        </div>
+        {checking ? <p className="mt-6 text-ink-3">Checking PIN…</p> : !unlocked ? (
+          <form className="mt-6 max-w-sm" onSubmit={(e) => { e.preventDefault(); if (pin) { setChecking(true); verify(pin); } }}>
+            <div className="flex gap-2">
+              <input value={pin} onChange={(e) => setPin(e.target.value)} type="password" placeholder="Admin PIN" className="h-12 flex-1 rounded-xl border border-line bg-card px-3" />
+              <Button size="md" type="submit">Unlock</Button>
+            </div>
+            {pinError && <p className="mt-2 text-sm font-medium text-bad">{pinError}</p>}
           </form>
         ) : (
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_1fr]">
