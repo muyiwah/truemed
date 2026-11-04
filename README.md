@@ -14,7 +14,7 @@ Everything in this repository was built during the event (first commit Oct 30, 2
 |---|---|
 | Pharmacist / licensed chemist sign-in (hosted and local) | **2468** |
 | `/admin` when you run TrueMed locally | whatever you set as `ADMIN_PIN` in `backend/.env` |
-| `/admin` on the hosted demo | private: it can change the shared demo data and holds field-test photos. Run locally to try it. |
+| `/admin` on the hosted demo (judges) | **truemed-judge-2026**: Sentinel and the DemoQuin controls (reset, issue, dispatch). Field-test photos and demo videos stay private to the owner. |
 | Meta Model API | your own key, as `MODEL_API_KEY` in `backend/.env` (never committed) |
 | Buyers (Gate 2 home check) | no account, no PIN |
 
@@ -33,7 +33,7 @@ Fake and substandard medicines kill up to **500,000 people a year in sub-Saharan
 3. Tap **Relabeled expiry** → confirm the values → *At a market* → **High risk**: the 2D code says expiry 2025-05, the box says 2028-05. Switch the explanation to Naijá / Yorùbá / Hausa. Tap **Investigate** to watch the Investigator agent build a case file.
 4. Pharmacy flow: on the start screen choose **Pharmacist or Chemist**, any demo shop, PIN **2468** → **Receive stock**. Print labels from **Print demo labels** to scan DemoQuin packs, including a cloned serial that is rejected at the door.
 
-Sample packs never write to the ledger, so every judge sees the same result. The hosted `/admin` page (Sentinel, demo reset) is PIN-locked because it can change shared demo data; run TrueMed locally to use it with your own `ADMIN_PIN`.
+Sample packs never write to the ledger, so every judge sees the same result. Judges can open the hosted `/admin` page with the judge PIN **truemed-judge-2026** (Sentinel, demo reset). If a scenario behaves unexpectedly because someone else changed the demo data, press **DemoQuin chain → Reset**.
 
 ## Run it yourself
 

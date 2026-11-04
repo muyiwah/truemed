@@ -5,9 +5,12 @@ import { viewUrl, signUpload, removeMedia } from '../services/storage.js';
 import { config } from '../config.js';
 import { ingest, approve, matchPacks } from '../agents/sentinel/index.js';
 import { issue, dispatch, label, resetDemo, SCENARIOS, DEMO_GTIN } from '../demo/demoquin.js';
-import { requireAdmin, asyncH } from './middleware.js';
+import { requireAdmin, requireOwner, asyncH } from './middleware.js';
 
 const r = Router();
+
+// Which PIN is this? The admin page uses it to unlock (owner = full, judge = demo controls).
+r.get('/admin-check', requireAdmin, (req, res) => res.json({ role: req.adminRole }));
 
 // --- Sentinel ---
 r.get('/alerts', asyncH(async (_req, res) => {
@@ -30,7 +33,7 @@ r.post('/alerts/:id/reject', requireAdmin, asyncH(async (req, res) => {
 
 // --- Field-test export (eval set) ---
 // Real scans only, with short-lived photo links. Read by scripts/exportField.js.
-r.get('/field-scans', requireAdmin, asyncH(async (req, res) => {
+r.get('/field-scans', requireOwner, asyncH(async (req, res) => {
   const since = z.coerce.date().optional().catch(undefined).parse(req.query.since);
   const sessions = await ScanSession.find({ sampleId: null, ...(since ? { createdAt: { $gte: since } } : {}) })
     .select('gate role city language images extracted barcode visual quality userValues confirmed answer result timings createdAt finalizedAt')
@@ -42,12 +45,12 @@ r.get('/field-scans', requireAdmin, asyncH(async (req, res) => {
 // Videos can't be deleted for 72 hours (needed for editing the demo film), and their links last as long.
 const KEEP_SECONDS = 72 * 3600;
 const FOOTAGE_FOLDER = `${config.IMAGEKIT_FOLDER.replace(/\/+$/, '')}/footage`;
-r.get('/videos/upload-auth', requireAdmin, (_req, res) => {
+r.get('/videos/upload-auth', requireOwner, (_req, res) => {
   const auth = signUpload();
   if (!auth) return res.status(503).json({ error: 'Video storage is not configured on the server.' });
   res.json({ ...auth, folder: FOOTAGE_FOLDER });
 });
-r.post('/videos', requireAdmin, asyncH(async (req, res) => {
+r.post('/videos', requireOwner, asyncH(async (req, res) => {
   const b = z.object({
     fileId: z.string().min(1).max(100), filePath: z.string().min(1).max(500), url: z.string().url(),
     title: z.string().max(200).optional(), size: z.number().nonnegative().optional(), durationSec: z.number().nonnegative().optional(),
@@ -56,7 +59,7 @@ r.post('/videos', requireAdmin, asyncH(async (req, res) => {
   const v = await Video.create({ kind: 'footage', title: b.title, size: b.size, durationSec: b.durationSec, media: { fileId: b.fileId, filePath: b.filePath, url: b.url, isPrivate: true, kind: 'video' } });
   res.json({ id: v._id });
 }));
-r.get('/videos', requireAdmin, asyncH(async (_req, res) => {
+r.get('/videos', requireOwner, asyncH(async (_req, res) => {
   const list = await Video.find().sort({ createdAt: -1 }).limit(300).lean();
   res.json(list.map(({ media, annotated, ...v }) => ({
     ...v,
@@ -65,12 +68,12 @@ r.get('/videos', requireAdmin, asyncH(async (_req, res) => {
     deletableAt: new Date(new Date(v.createdAt).getTime() + KEEP_SECONDS * 1000),
   })));
 }));
-r.patch('/videos/:id', requireAdmin, asyncH(async (req, res) => {
+r.patch('/videos/:id', requireOwner, asyncH(async (req, res) => {
   const { title } = z.object({ title: z.string().max(200) }).parse(req.body);
   await Video.updateOne({ _id: req.params.id }, { $set: { title } });
   res.json({ ok: true });
 }));
-r.delete('/videos/:id', requireAdmin, asyncH(async (req, res) => {
+r.delete('/videos/:id', requireOwner, asyncH(async (req, res) => {
   const found = await Video.findById(req.params.id).select('createdAt').lean();
   if (found && Date.now() - new Date(found.createdAt).getTime() < KEEP_SECONDS * 1000) {
     return res.status(409).json({ error: 'Videos are kept for 72 hours after upload. Try again later.' });

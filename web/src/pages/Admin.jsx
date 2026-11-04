@@ -15,11 +15,12 @@ export default function Admin() {
   const [unlocked, setUnlocked] = useState(false);
   const [checking, setChecking] = useState(Boolean(safeGet('tm.adminPin')));
   const [pinError, setPinError] = useState(null);
+  const [role, setRole] = useState(null);
 
   // The server checks the PIN on every admin call; check it here too, so a wrong PIN never opens the room.
   const verify = async (candidate) => {
     safeSet('tm.adminPin', candidate);
-    try { await get('/videos'); setUnlocked(true); setPinError(null); }
+    try { const r = await get('/admin-check'); setRole(r.role); setUnlocked(true); setPinError(null); }
     catch (e) { safeSet('tm.adminPin', ''); setUnlocked(false); setPinError(e.status === 403 ? 'Wrong PIN.' : e.message); }
     setChecking(false);
   };
@@ -45,7 +46,9 @@ export default function Admin() {
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_1fr]">
             <Sentinel />
             <div className="space-y-6"><Health /><Demo /></div>
-            <div className="lg:col-span-2"><Videos /></div>
+            {role === 'owner' ? <div className="lg:col-span-2"><Videos /></div> : (
+              <p className="lg:col-span-2 rounded-2xl bg-info-soft/60 p-4 text-sm text-ink-2"><span className="font-semibold">Judge access.</span> Sentinel and the DemoQuin controls work fully. Field-test photos and demo videos stay private to the owner.</p>
+            )}
           </div>
         )}
       </div>

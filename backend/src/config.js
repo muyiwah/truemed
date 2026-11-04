@@ -22,6 +22,8 @@ const schema = z.object({
   DAILY_CALL_CAP: z.coerce.number().default(3000),
   DAILY_SPEND_CAP_USD: z.coerce.number().default(15),
   ADMIN_PIN: z.string().default('change-me-admin'),
+  // Optional public PIN for hackathon judges: Sentinel and demo reset, but no field photos or videos.
+  JUDGE_PIN: z.string().optional(),
   PHARMACIST_DEMO_PIN: z.string().default('2468'),
   ALLOWED_ORIGINS: z.string().default('http://localhost:5173'),
   GREENBOOK_LOOKUP: z.enum(['on', 'off']).default('off'),

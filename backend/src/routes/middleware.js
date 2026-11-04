@@ -18,8 +18,17 @@ export async function device(req, _res, next) {
 export const requireVerified = (req, res, next) =>
   ['pharmacist', 'chemist', 'admin'].includes(req.role) && req.shopId ? next() : res.status(403).json({ error: 'Sign in as a pharmacy or licensed chemist to receive stock.' });
 
-export const requireAdmin = (req, res, next) =>
-  req.get('x-admin-pin') && req.get('x-admin-pin') === config.ADMIN_PIN ? next() : res.status(403).json({ error: 'Admin PIN required' });
+/** Admin PIN (full access) or judge PIN (demo controls only). Sets req.adminRole. */
+export function requireAdmin(req, res, next) {
+  const pin = req.get('x-admin-pin');
+  if (pin && pin === config.ADMIN_PIN) { req.adminRole = 'owner'; return next(); }
+  if (pin && config.JUDGE_PIN && pin === config.JUDGE_PIN) { req.adminRole = 'judge'; return next(); }
+  return res.status(403).json({ error: 'Admin PIN required' });
+}
+
+/** Owner only: field-test photos and demo videos stay private even from the judge PIN. */
+export const requireOwner = (req, res, next) =>
+  req.get('x-admin-pin') && req.get('x-admin-pin') === config.ADMIN_PIN ? next() : res.status(403).json({ error: 'Owner PIN required' });
 
 const mem = multer.memoryStorage();
 export const imagesUpload = multer({ storage: mem, limits: { fileSize: 8 * 1024 * 1024, files: 2 }, fileFilter: (_r, f, cb) => cb(null, /^image\//.test(f.mimetype)) }).array('images', 2);
